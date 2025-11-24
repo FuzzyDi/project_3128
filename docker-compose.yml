@@ -2,19 +2,19 @@
 
 services:
   postgres:
-    image: postgres:13
+    image: postgres:15
     container_name: project_3128_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "$POSTGRES_PORT:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
     image: redis:7-alpine
     container_name: project_3128_redis
     ports:
-      - "${REDIS_PORT}:6379"
+      - "$REDIS_PORT:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -38,12 +38,12 @@ services:
       dockerfile: Dockerfile
     container_name: project_3128_api
     ports:
-      - "${API_PORT}:8086"
+      - "$API_PORT:8086"
     environment:
-      NODE_ENV: ${NODE_ENV}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      NODE_ENV: $NODE_ENV
+      DATABASE_URL: postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: $JWT_SECRET
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +60,7 @@ services:
       dockerfile: Dockerfile
     container_name: project_3128_frontend
     ports:
-      - "${FRONTEND_PORT}:3000"
+      - "$FRONTEND_PORT:3000"
     depends_on:
       - api
     volumes:
@@ -78,19 +78,19 @@ services:
     depends_on:
       - api
       - frontend
-    restart: unless_stopped
+    restart: unless-stopped
 
   telegram-bot:
     build: 
       context: ./telegram-bot
       dockerfile: Dockerfile
     container_name: project_3128_telegram_bot
-    restart: unless_stopped
+    restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      NODE_ENV: $NODE_ENV
+      DATABASE_URL: postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
       REDIS_URL: redis://redis:6379
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_TOKEN: $TELEGRAM_BOT_TOKEN
       API_BASE_URL: http://api:8086
     depends_on:
       postgres:
