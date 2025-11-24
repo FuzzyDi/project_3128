@@ -1,0 +1,37 @@
+﻿# Environment
+.env
+.env.local
+.env.production
+*.env
+
+# Docker
+docker-compose.yml
+!docker-compose.example.yml
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Backup files
+*.backup.yml
+backup/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
