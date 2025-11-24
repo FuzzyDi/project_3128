@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: sbgloyalty
+      POSTGRES_USER: sbguser
+      POSTGRES_PASSWORD: sbgpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  admin-portal:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    depends_on:
+      - postgres
+
+  api-server:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "8086:8080"  # ИЗМЕНИЛ 8080 на 8086
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sbgloyalty
+      - DB_USER=sbguser
+      - DB_PASSWORD=sbgpass
+      - REDIS_URL=redis:6379
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "
+        npm install &&
+        npm run start:dev
+      "
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBGLoyalty - Admin Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2563eb;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.2em;
+        }
+        
+        .status-card {
+            background: #dcfce7;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .status-card h3 {
+            color: #166534;
+            margin-bottom: 10px;
+            font-size: 1.4em;
+        }
+        
+        .features {
+            margin: 30px 0;
+        }
+        
+        .features h2 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.6em;
+        }
+        
+        .features ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .features li {
+            padding: 8px 0;
+            font-size: 1.1em;
+            color: #4b5563;
+        }
+        
+        .features li:before {
+            content: "✅ ";
+            margin-right: 10px;
+        }
+        
+        .services {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        
+        .services h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        
+        .service-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 1.1em;
+        }
+        
+        .service-status {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .success { color: #22c55e; }
+        .warning { color: #eab308; }
+        
+        .urls {
+            margin-top: 25px;
+            padding: 20px;
+            background: #eff6ff;
+            border-radius: 12px;
+        }
+        
+        .urls h3 {
+            color: #1e40af;
+            margin-bottom: 15px;
+        }
+        
+        .url-item {
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #dbeafe;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 SBGLoyalty Admin Portal</h1>
+            <p class="subtitle">Платформа лояльности и реферального маркетинга</p>
+        </div>
+        
+        <div class="status-card">
+            <h3>✅ Система запущена успешно!</h3>
+            <p>Проект SBGLoyalty готов к разработке. Все основные сервисы работают.</p>
+        </div>
+        
+        <div class="features">
+            <h2>📋 Основные функции системы:</h2>
+            <ul>
+                <li>Программы лояльности для мерчантов</li>
+                <li>Реферальный маркетинг</li>
+                <li>Telegram бот для клиентов</li>
+                <li>Аналитика и отчеты</li>
+                <li>Мульти-тенантность</li>
+                <li>Интеграция с POS системами</li>
+            </ul>
+        </div>
+        
+        <div class="services">
+            <h3>🔧 Статус сервисов:</h3>
+            <div class="service-item">
+                <span class="service-status success">✅</span>
+                <span>PostgreSQL база данных (порт 5433)</span>
+            </div>
+            <div class="service-item">
+                <span class="service-status success">✅</span>
+                <span>Redis кэш (порт 6380)</span>
+            </div>
+            <div class="service-item">
+                <span class="service-status success">✅</span>
+                <span>Admin портал (порт 3000)</span>
+            </div>
+            <div class="service-item">
+                <span class="service-status success">✅</span>
+                <span>API сервер (порт 8086)</span>
+            </div>
+        </div>
+		<div class="login-section" style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 25px 0;">
+            <h3 style="color: #374151; margin-bottom: 15px;">🔐 Вход для мерчантов</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="apiKeyInput" placeholder="Введите ваш API Key" style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 6px;">
+                <button onclick="loginWithApiKey()" style="padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Войти
+                </button>
+            </div>
+            <p style="color: #6b7280; font-size: 0.9em; margin-top: 10px;">
+                Уже зарегистрированы? Введите ваш API Key для входа в панель управления.
+            </p>
+        </div>
+
+        <script>
+            function loginWithApiKey() {
+                const apiKey = document.getElementById('apiKeyInput').value.trim();
+                if (apiKey) {
+                    window.location.href = `/dashboard.html?api_key=${encodeURIComponent(apiKey)}`;
+                } else {
+                    alert('Пожалуйста, введите API Key');
+                }
+            }
+        </script>
+		<div class="actions" style="text-align: center; margin: 30px 0;">
+            <a href="/register.html" style="display: inline-block; background: #2563eb; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.1em;">
+                📝 Зарегистрировать мерчанта
+            </a>
+        </div>
+        
+        <div class="urls">
+            <h3>🌐 Доступные адреса:</h3>
+            <div class="url-item">Админ портал: http://localhost:3000</div>
+            <div class="url-item">API Health: http://localhost:8086/api/health</div>
+            <div class="url-item">API Merchants: http://localhost:8086/api/merchants</div>
+            <div class="url-item">База данных: localhost:5433</div>
+            <div class="url-item">Redis: localhost:6380</div>
+        </div>
+    </div>
+</body>
+</html>

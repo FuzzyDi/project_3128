@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация мерчанта - SBGLoyalty</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2563eb;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .credentials {
+            background: #f8fafc;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .credential-item {
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Регистрация мерчанта</h1>
+            <p class="subtitle">Создайте свою программу лояльности за 2 минуты</p>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name">Название бизнеса *</label>
+                <input type="text" id="name" name="name" required placeholder="Например: Кофейня 'У Ашота'">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required placeholder="your@business.com">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Телефон *</label>
+                <input type="tel" id="phone" name="phone" required placeholder="+7 (999) 123-45-67">
+            </div>
+
+            <div class="form-group">
+                <label for="business_type">Тип бизнеса *</label>
+                <select id="business_type" name="business_type" required>
+                    <option value="">Выберите тип бизнеса</option>
+                    <option value="coffee_shop">Кофейня</option>
+                    <option value="restaurant">Ресторан</option>
+                    <option value="retail_store">Магазин розничной торговли</option>
+                    <option value="beauty_salon">Салон красоты</option>
+                    <option value="fitness_center">Фитнес-центр</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Зарегистрироваться
+            </button>
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div id="credentials" class="credentials">
+            <h3>✅ Регистрация успешна!</h3>
+            <p>Сохраните эти данные - они понадобятся для входа:</p>
+            <div class="credential-item">
+                <strong>API Key:</strong> <span id="apiKey"></span>
+            </div>
+            <div class="credential-item">
+                <strong>Join Token:</strong> <span id="joinToken"></span>
+            </div>
+            <div class="credential-item">
+                <strong>Merchant Code:</strong> <span id="merchantCode"></span>
+            </div>
+            <p style="margin-top: 15px; color: #6b7280; font-size: 0.9em;">
+                ⚠️ Сохраните API Key - он покажется только один раз!
+            </p>
+        </div>
+
+        <div class="back-link">
+            <a href="/">← Вернуться на главную</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            const credentialsDiv = document.getElementById('credentials');
+            
+            // Показываем загрузку
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Регистрация...';
+            messageDiv.style.display = 'none';
+            credentialsDiv.style.display = 'none';
+            
+            try {
+                const formData = {
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    business_type: document.getElementById('business_type').value
+                };
+                
+                const response = await fetch('http://localhost:8086/api/v1/public/merchants', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Показываем успех и credentials
+                    document.getElementById('apiKey').textContent = data.credentials.api_key;
+                    document.getElementById('joinToken').textContent = data.credentials.join_token;
+                    document.getElementById('merchantCode').textContent = data.merchant.merchant_code;
+                    
+                    credentialsDiv.style.display = 'block';
+                    document.getElementById('registerForm').reset();
+                } else {
+                    // Показываем ошибку
+                    showMessage(data.message || 'Ошибка регистрации', 'error');
+                }
+                
+            } catch (error) {
+                showMessage('Ошибка подключения к серверу', 'error');
+                console.error('Registration error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+            }
+        });
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
