@@ -522,21 +522,37 @@
               </div>
 
               <div class="docs-links">
-                <div>
-                  • Основной контракт API v1 хранится в репозитории:  
-                  <a href="https://github.com/FuzzyDi/project_3128/blob/main/docs/api_v1.md" target="_blank" rel="noopener noreferrer">
-                    docs/api_v1.md (GitHub)
-                  </a>
-                </div>
-                <div>
-                  • Базовый URL API берём из <code>window.PROJECT_3128_CONFIG.apiBaseUrl</code>, отдаваемого через <code>/config.js</code>.
-                </div>
-                <div>
-                  • План: встроить HTML-рендер документации прямо сюда (Markdown → HTML, либо отдельный /docs/api).
-                </div>
-                <div>
-                  • Также здесь можно будет описать интеграцию кассы и Telegram-бота, примеры запросов для мерчанта и операторов.
-                </div>
+				<hr class="divider" />
+
+				<div class="card-sub" style="margin:8px 0 4px;">API-тестер (dev-only)</div>
+
+				<div class="api-tester-form">
+				  <div class="api-tester-row">
+					<select id="apiTesterMethod">
+					  <option value="GET">GET</option>
+					  <option value="POST">POST</option>
+					</select>
+					<input
+					  id="apiTesterPath"
+					  placeholder="/api/v1/merchant/dashboard"
+					/>
+					<button class="secondary-button" id="apiTesterSendBtn" type="button">
+					  <span>▶</span>
+					  <span>Выполнить</span>
+					</button>
+				  </div>
+
+				  <div class="api-tester-body">
+					<textarea
+					  id="apiTesterBody"
+					  placeholder='Тело запроса (JSON), для GET можно оставить пустым'
+					></textarea>
+				  </div>
+
+				  <div class="api-tester-result">
+					<pre id="apiTesterResult">// результат запроса появится здесь</pre>
+				  </div>
+				</div>
               </div>
             </div>
           </div>
