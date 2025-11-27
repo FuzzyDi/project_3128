@@ -695,45 +695,59 @@
           </div>
         </section>
 
-        <!-- SECTION: ABOUT -->
-        <section class="section" data-section="about">
-          <div class="row-full">
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <div class="card-title">О демо-проекте</div>
-                  <div class="card-sub">Project 3128 — сервис лояльности для ритейла</div>
-                </div>
-                <div class="chip">
-                  <span class="chip-dot success"></span>
-                  <span>Architect-first подход</span>
-                </div>
+      <!-- SECTION: ABOUT -->
+      <section class="section" data-section="about">
+        <div class="row-full">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">О демо-проекте</div>
+                <div class="card-sub">Project 3128 — сервис лояльности для ритейла</div>
               </div>
-
-              <div style="font-size:13px; color: var(--text-soft); line-height:1.6;">
-                <p>
-                  Этот портал — «единый вход» в демонстрационный сервис лояльности:
-                  <strong>магазин ↔ сервис лояльности ↔ клиент</strong>.
-                </p>
-                <p>
-                  Backend: Node.js (Express) + PostgreSQL.  
-                  Отдельный frontend-сервер (этот портал), Telegram-бот и docker-compose с nginx как reverse proxy.
-                </p>
-                <p>
-                  Цель: показать полный цикл работы лояльности:
-                  создание мерчанта, регистрация клиентов, начисление и списание баллов, просмотр дашборда и интеграции.
-                </p>
-                <p>Дальнейшие шаги:</p>
-                <ul>
-                  <li>Подключить реальные данные дашборда из <code>/api/v1/merchant/dashboard</code>.</li>
-                  <li>Реальный список клиентов и транзакций из API v1.</li>
-                  <li>Настройки программы лояльности (earn / redeem / expiry / анти-фрод).</li>
-                  <li>Витрина отчётов и сценариев интеграции кассы + Telegram-бота.</li>
-                </ul>
+              <div class="chip">
+                <span class="chip-dot success"></span>
+                <span>Architect-first подход</span>
               </div>
             </div>
+
+            <div style="font-size:13px; color: var(--text-soft); line-height:1.6;">
+              <p>
+                Этот портал — «единый вход» в демонстрационный сервис лояльности:
+                <strong>магазин ↔ сервис лояльности ↔ клиент</strong>.
+              </p>
+
+              <p><strong>Текущая архитектура:</strong></p>
+              <ul>
+                <li>Backend: Node.js (Express) + PostgreSQL, API v1 в стиле REST.</li>
+                <li>Frontend-портал: отдельный Node-сервер, статика <code>/portal</code> + <code>/pos.html</code>.</li>
+                <li>Telegram-бот: интеграция клиентов с сервисом (временные коды, баланс).</li>
+                <li>Обвязка: Docker Compose + nginx как reverse proxy.</li>
+              </ul>
+
+              <p><strong>Что уже реализовано в портале:</strong></p>
+              <ul>
+                <li>Дашборд мерчанта с живыми данными из <code>/api/v1/merchant/dashboard</code>
+                  (KPI, график оборота, последние транзакции).</li>
+                <li>Разделы «Клиенты» и «Транзакции» на основе тех же данных dashboard.</li>
+                <li>Правила программы лояльности, читаемые из полей мерчанта
+                  (<code>earnRatePer1000</code>, <code>redeemMaxPercent</code> и др.).</li>
+                <li>Виртуальная касса <code>/pos.html</code> с реальными
+                  <code>lookup</code>/<code>checkout</code> через API v1.</li>
+                <li>Раздел «API & Документация» с основными endpoint-ами и встроенным API-тестером.</li>
+              </ul>
+
+              <p><strong>План дальнейшего развития:</strong></p>
+              <ul>
+                <li>Мульти-мерчант и роли (admin / merchant / operator) с авторизацией.</li>
+                <li>Расширенные правила лояльности: сегменты клиентов, кампании, expiry, анти-фрод.</li>
+                <li>Отчётность и витрина аналитики (LTV, retention, частота покупок, каналы привлечения).</li>
+                <li>Техраздел: health-эндпоинты, логирование, метрики, алерты.</li>
+                <li>Дополнительные сценарии интеграции кассы и Telegram-бота (webhook-флоу, промо-кампании).</li>
+              </ul>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
       </section>
     </main>

@@ -34,7 +34,14 @@ async function loadMerchantByApiKey(apiKey) {
       code,
       name,
       api_key,
-      created_at
+      created_at,
+      earn_rate_per_1000,
+      redeem_max_percent,
+      min_receipt_amount_for_earn,
+      redeem_min_points,
+      redeem_step,
+      max_points_per_receipt,
+      max_points_per_day
     FROM merchants
     WHERE api_key = $1
     LIMIT 1
@@ -61,7 +68,6 @@ function mapMerchantRowToJson(row) {
     code: row.code,
     name: row.name,
     createdAt: row.created_at,
-    // Настройки лояльности добавим позже, после миграций схемы:
     earnRatePer1000: row.earn_rate_per_1000 ?? null,
     redeemMaxPercent: row.redeem_max_percent ?? null,
     minReceiptAmountForEarn: row.min_receipt_amount_for_earn ?? null,
@@ -71,6 +77,138 @@ function mapMerchantRowToJson(row) {
     maxPointsPerDay: row.max_points_per_day ?? null,
   };
 }
+
+/**
+ * POST /api/v1/merchants/register
+ *
+ * Регистрация мерчанта (demo). Возвращает merchant в том же формате,
+ * что и /api/v1/merchant/dashboard.
+ */
+app.post('/api/v1/merchants/register', async (req, res) => {
+  const { name, code } = req.body || {};
+
+  // Валидация name
+  if (!name || typeof name !== 'string' || !name.trim() || name.trim().length > 100) {
+    return res.status(400).json({
+      status: 'ERROR',
+      error: 'validation_error',
+      message: 'Field "name" is required and must be 1..100 chars',
+    });
+  }
+
+  let normalizedCode = null;
+
+  if (code != null) {
+    if (typeof code !== 'string') {
+      return res.status(400).json({
+        status: 'ERROR',
+        error: 'validation_error',
+        message: 'Field "code" must be a string',
+      });
+    }
+    normalizedCode = code.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,16}$/.test(normalizedCode)) {
+      return res.status(400).json({
+        status: 'ERROR',
+        error: 'validation_error',
+        message: 'Field "code" must match ^[A-Z0-9]{3,16}$',
+      });
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Генерация/проверка уникальности кода
+    let finalCode = normalizedCode;
+    const maxAttempts = normalizedCode ? 1 : 5;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (!finalCode) {
+        finalCode = 'MC' + crypto.randomBytes(3).toString('hex').toUpperCase(); // MC + 6 HEX
+      }
+
+      const existsRes = await client.query(
+        'SELECT 1 FROM merchants WHERE code = $1 LIMIT 1',
+        [finalCode],
+      );
+
+      if (existsRes.rowCount === 0) {
+        break; // код свободен
+      }
+
+      if (normalizedCode) {
+        // Пользователь задал code сам — конфликт
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          status: 'ERROR',
+          error: 'conflict',
+          message: 'Merchant with this code already exists',
+        });
+      }
+
+      // Иначе пробуем сгенерировать новый
+      finalCode = null;
+    }
+
+    if (!finalCode) {
+      throw new Error('Failed to generate unique merchant code');
+    }
+
+    const apiKeySuffix = crypto.randomBytes(4).toString('hex'); // 8 hex
+    const apiKey = `sbg_mc_${finalCode.toLowerCase()}_${apiKeySuffix}`;
+
+    const insertRes = await client.query(
+      `
+      INSERT INTO merchants (
+        code,
+        name,
+        api_key,
+        created_at
+      ) VALUES ($1, $2, $3, NOW())
+      RETURNING
+        id,
+        code,
+        name,
+        api_key,
+        created_at,
+        earn_rate_per_1000,
+        redeem_max_percent,
+        min_receipt_amount_for_earn,
+        redeem_min_points,
+        redeem_step,
+        max_points_per_receipt,
+        max_points_per_day
+      `,
+      [finalCode, name.trim(), apiKey],
+    );
+
+    await client.query('COMMIT');
+
+    const row = insertRes.rows[0];
+    const merchant = mapMerchantRowToJson(row);
+
+    return res.status(201).json({
+      status: 'OK',
+      merchant: {
+        ...merchant,
+        apiKey: row.api_key,
+        status: 'active',
+      },
+    });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[POST /api/v1/merchants/register] error:', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      error: 'internal_error',
+      message: 'Failed to register merchant',
+    });
+  } finally {
+    client.release();
+  }
+});
 
 // === Health check ===
 app.get('/api/health', (req, res) => {
@@ -85,7 +223,7 @@ app.get('/api/health', (req, res) => {
 /**
  * POST /api/v1/public/merchants
  *
- * Регистрация тестового мерчанта
+ * Регистрация тестового мерчанта (старый demo-эндпоинт)
  */
 app.post('/api/v1/public/merchants', async (req, res) => {
   const { name, phone, externalCustomerId } = req.body || {};

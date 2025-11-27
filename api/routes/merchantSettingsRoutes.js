@@ -1,66 +1,103 @@
 'use strict';
 
 const express = require('express');
-const { Pool } = require('pg');
-const {
-  getMerchantByApiKey,
-  mapMerchantToPublicSettings,
-} = require('../services/merchantService');
-
 const router = express.Router();
+const { pool } = require('../db');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+// --- helpers ---
 
-/**
- * Нормализация числового параметра.
- * Возвращает либо целое число (с учётом min/max), либо null (если не задан).
- */
-function normalizeInt(value, { min = null, max = null, allowNull = true } = {}) {
-  if (value === undefined || value === null || value === '') {
-    return allowNull ? null : null;
+async function loadMerchantByApiKey(apiKey) {
+  if (!apiKey) {
+    const err = new Error('API Key required');
+    err.code = 'UNAUTHORIZED';
+    throw err;
   }
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    throw new Error('NOT_NUMBER');
-  }
-  const intVal = Math.trunc(n);
 
-  if (min != null && intVal < min) {
-    throw new Error('TOO_SMALL');
+  const res = await pool.query(
+    `
+    SELECT
+      id,
+      code,
+      name,
+      api_key,
+      created_at,
+      earn_rate_per_1000,
+      redeem_max_percent,
+      min_receipt_amount_for_earn,
+      redeem_min_points,
+      redeem_step,
+      max_points_per_receipt,
+      max_points_per_day
+    FROM merchants
+    WHERE api_key = $1
+    LIMIT 1
+    `,
+    [apiKey],
+  );
+
+  if (res.rowCount === 0) {
+    const err = new Error('Invalid API Key');
+    err.code = 'FORBIDDEN';
+    throw err;
   }
-  if (max != null && intVal > max) {
-    throw new Error('TOO_LARGE');
-  }
-  return intVal;
+
+  return res.rows[0];
 }
 
-/**
- * GET /api/v1/merchant/settings
- * Возвращает настройки лояльности мерчанта (по API Key).
- */
+function mapMerchantRowToJson(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    createdAt: row.created_at,
+    earnRatePer1000: row.earn_rate_per_1000 ?? null,
+    redeemMaxPercent: row.redeem_max_percent ?? null,
+    minReceiptAmountForEarn: row.min_receipt_amount_for_earn ?? null,
+    redeemMinPoints: row.redeem_min_points ?? null,
+    redeemStep: row.redeem_step ?? null,
+    maxPointsPerReceipt: row.max_points_per_receipt ?? null,
+    maxPointsPerDay: row.max_points_per_day ?? null,
+  };
+}
+
+function parseIntOrNull(raw) {
+  if (raw === null) return null;
+  if (raw === undefined) return undefined; // «нет поля»
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.trunc(n);
+}
+
+// --- GET /api/v1/merchant/settings ---
+// Вернуть текущие настройки лояльности мерчанта по X-API-KEY
 router.get('/', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
 
   try {
-    const merchantRow = await getMerchantByApiKey(apiKey);
-    const merchant = mapMerchantToPublicSettings(merchantRow);
+    const row = await loadMerchantByApiKey(apiKey);
+    const merchant = mapMerchantRowToJson(row);
 
     return res.json({
       status: 'OK',
-      settings: merchant,
+      merchant: {
+        ...merchant,
+        apiKey: row.api_key,
+        status: 'active',
+      },
     });
   } catch (err) {
     if (err.code === 'UNAUTHORIZED') {
       return res.status(401).json({
         status: 'ERROR',
-        message: 'API Key required',
+        error: 'unauthorized',
+        message: 'X-API-KEY header is required',
       });
     }
     if (err.code === 'FORBIDDEN') {
       return res.status(403).json({
         status: 'ERROR',
+        error: 'forbidden',
         message: 'Invalid API Key',
       });
     }
@@ -68,166 +105,197 @@ router.get('/', async (req, res) => {
     console.error('[GET /api/v1/merchant/settings] error:', err);
     return res.status(500).json({
       status: 'ERROR',
-      message: 'Internal server error',
+      error: 'internal_error',
+      message: 'Failed to load merchant settings',
     });
   }
 });
 
-/**
- * PUT /api/v1/merchant/settings
- * Обновляет настройки лояльности мерчанта.
- *
- * Ожидаемый body (любое поле опционально, если не передано — остаётся как было):
- * {
- *   "earnRatePer1000": 1,
- *   "redeemMaxPercent": 50,
- *   "minReceiptAmountForEarn": 0,
- *   "redeemMinPoints": 0,
- *   "redeemStep": 1,
- *   "maxPointsPerReceipt": 10000,
- *   "maxPointsPerDay": 50000
- * }
- */
-router.put('/', async (req, res) => {
+// --- PATCH /api/v1/merchant/settings ---
+// Частичное обновление настроек earn/redeem по X-API-KEY
+router.patch('/', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
-  const body = req.body || {};
 
-  const client = await pool.connect();
-
+  let merchantRow;
   try {
-    await client.query('BEGIN');
-
-    const merchantRow = await getMerchantByApiKey(apiKey, client);
-
-    // Нормализуем и валидируем значения (если поля есть в body)
-    const updates = {};
-    const errors = {};
-
-    function handleField(fieldName, columnName, opts) {
-      if (body[fieldName] === undefined) return;
-      try {
-        const val = normalizeInt(body[fieldName], opts);
-        updates[columnName] = val;
-      } catch (e) {
-        errors[fieldName] = e.message;
-      }
-    }
-
-    handleField('earnRatePer1000', 'earn_rate_per_1000', {
-      min: 0,
-      max: 100000,
-      allowNull: false,
-    });
-
-    handleField('redeemMaxPercent', 'redeem_max_percent', {
-      min: 0,
-      max: 100,
-      allowNull: false,
-    });
-
-    handleField(
-      'minReceiptAmountForEarn',
-      'min_receipt_amount_for_earn',
-      {
-        min: 0,
-        max: 1_000_000_000,
-        allowNull: false,
-      },
-    );
-
-    handleField('redeemMinPoints', 'redeem_min_points', {
-      min: 0,
-      max: 1_000_000_000,
-      allowNull: false,
-    });
-
-    handleField('redeemStep', 'redeem_step', {
-      min: 1,
-      max: 1_000_000_000,
-      allowNull: false,
-    });
-
-    handleField('maxPointsPerReceipt', 'max_points_per_receipt', {
-      min: 0,
-      max: 1_000_000_000,
-      allowNull: true,
-    });
-
-    handleField('maxPointsPerDay', 'max_points_per_day', {
-      min: 0,
-      max: 1_000_000_000,
-      allowNull: true,
-    });
-
-    if (Object.keys(errors).length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        status: 'ERROR',
-        message: 'Validation error',
-        details: errors,
-      });
-    }
-
-    if (Object.keys(updates).length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        status: 'ERROR',
-        message: 'No settings provided',
-      });
-    }
-
-    const setClauses = [];
-    const values = [];
-    let idx = 1;
-
-    for (const [col, val] of Object.entries(updates)) {
-      setClauses.push(`${col} = $${idx++}`);
-      values.push(val);
-    }
-
-    values.push(merchantRow.id);
-
-    const updateSql = `
-      UPDATE merchants
-         SET ${setClauses.join(', ')}
-       WHERE id = $${idx}
-       RETURNING *
-    `;
-
-    const updatedRes = await client.query(updateSql, values);
-    const updated = updatedRes.rows[0];
-
-    await client.query('COMMIT');
-
-    const settings = mapMerchantToPublicSettings(updated);
-
-    return res.json({
-      status: 'OK',
-      settings,
-    });
+    merchantRow = await loadMerchantByApiKey(apiKey);
   } catch (err) {
-    await client.query('ROLLBACK');
-
     if (err.code === 'UNAUTHORIZED') {
       return res.status(401).json({
         status: 'ERROR',
-        message: 'API Key required',
+        error: 'unauthorized',
+        message: 'X-API-KEY header is required',
       });
     }
     if (err.code === 'FORBIDDEN') {
       return res.status(403).json({
         status: 'ERROR',
+        error: 'forbidden',
         message: 'Invalid API Key',
       });
     }
-
-    console.error('[PUT /api/v1/merchant/settings] error:', err);
+    console.error('[PATCH /api/v1/merchant/settings] load error:', err);
     return res.status(500).json({
       status: 'ERROR',
-      message: 'Internal server error',
+      error: 'internal_error',
+      message: 'Failed to load merchant',
     });
-  } finally {
-    client.release();
+  }
+
+  const body = req.body || {};
+
+  // Разбираем каждое поле.
+  // undefined -> поле не меняем
+  // null      -> очищаем в БД (NULL)
+  // число     -> записываем
+  const rawEarnRatePer1000 = parseIntOrNull(body.earnRatePer1000);
+  const rawRedeemMaxPercent = parseIntOrNull(body.redeemMaxPercent);
+  const rawMinReceiptAmountForEarn = parseIntOrNull(body.minReceiptAmountForEarn);
+  const rawRedeemMinPoints = parseIntOrNull(body.redeemMinPoints);
+  const rawRedeemStep = parseIntOrNull(body.redeemStep);
+  const rawMaxPointsPerReceipt = parseIntOrNull(body.maxPointsPerReceipt);
+  const rawMaxPointsPerDay = parseIntOrNull(body.maxPointsPerDay);
+
+  const updates = [];
+  const params = [];
+  let idx = 1;
+
+  function pushUpdate(columnName, rawValue, validator) {
+    if (rawValue === undefined) return; // поле не передано
+    if (Number.isNaN(rawValue)) {
+      throw {
+        code: 'VALIDATION',
+        message: `Invalid value for ${columnName}`,
+      };
+    }
+    if (rawValue !== null && typeof validator === 'function') {
+      const ok = validator(rawValue);
+      if (!ok) {
+        throw {
+          code: 'VALIDATION',
+          message: `Out of range value for ${columnName}`,
+        };
+      }
+    }
+    updates.push(`${columnName} = $${idx}`);
+    params.push(rawValue);
+    idx += 1;
+  }
+
+  try {
+    // earnRatePer1000: >=0 и <= 1000 (защита от "100% за чек")
+    pushUpdate(
+      'earn_rate_per_1000',
+      rawEarnRatePer1000,
+      (v) => v >= 0 && v <= 1000,
+    );
+
+    // redeemMaxPercent: 0..100
+    pushUpdate(
+      'redeem_max_percent',
+      rawRedeemMaxPercent,
+      (v) => v >= 0 && v <= 100,
+    );
+
+    // minReceiptAmountForEarn: >=0
+    pushUpdate(
+      'min_receipt_amount_for_earn',
+      rawMinReceiptAmountForEarn,
+      (v) => v >= 0,
+    );
+
+    // redeemMinPoints: >=0
+    pushUpdate(
+      'redeem_min_points',
+      rawRedeemMinPoints,
+      (v) => v >= 0,
+    );
+
+    // redeemStep: >=1
+    pushUpdate(
+      'redeem_step',
+      rawRedeemStep,
+      (v) => v >= 1,
+    );
+
+    // maxPointsPerReceipt: >=0
+    pushUpdate(
+      'max_points_per_receipt',
+      rawMaxPointsPerReceipt,
+      (v) => v >= 0,
+    );
+
+    // maxPointsPerDay: >=0
+    pushUpdate(
+      'max_points_per_day',
+      rawMaxPointsPerDay,
+      (v) => v >= 0,
+    );
+  } catch (e) {
+    if (e && e.code === 'VALIDATION') {
+      return res.status(400).json({
+        status: 'ERROR',
+        error: 'validation_error',
+        message: e.message,
+      });
+    }
+    console.error('[PATCH /api/v1/merchant/settings] validation error:', e);
+    return res.status(400).json({
+      status: 'ERROR',
+      error: 'validation_error',
+      message: 'Invalid settings payload',
+    });
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({
+      status: 'ERROR',
+      error: 'validation_error',
+      message: 'No settings fields provided',
+    });
+  }
+
+  params.push(merchantRow.id);
+
+  const sql = `
+    UPDATE merchants
+       SET ${updates.join(', ')}
+     WHERE id = $${idx}
+     RETURNING
+       id,
+       code,
+       name,
+       api_key,
+       created_at,
+       earn_rate_per_1000,
+       redeem_max_percent,
+       min_receipt_amount_for_earn,
+       redeem_min_points,
+       redeem_step,
+       max_points_per_receipt,
+       max_points_per_day
+  `;
+
+  try {
+    const updateRes = await pool.query(sql, params);
+    const row = updateRes.rows[0];
+    const merchant = mapMerchantRowToJson(row);
+
+    return res.json({
+      status: 'OK',
+      merchant: {
+        ...merchant,
+        apiKey: row.api_key,
+        status: 'active',
+      },
+    });
+  } catch (err) {
+    console.error('[PATCH /api/v1/merchant/settings] db error:', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      error: 'internal_error',
+      message: 'Failed to update merchant settings',
+    });
   }
 });
 
