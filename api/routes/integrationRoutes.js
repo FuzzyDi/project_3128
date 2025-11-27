@@ -1,18 +1,14 @@
-// routes/integrationRoutes.js
 'use strict';
 
 const express = require('express');
-const { Pool } = require('pg');
-
 const router = express.Router();
+
 const {
   getMerchantByApiKey,
   mapMerchantToPublicSettings,
 } = require('../services/merchantService');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const { pool } = require('../db');
 
 function logError(context, err) {
   console.error(`❌ [INTEGRATION API] ${context}:`, err.message || err);
