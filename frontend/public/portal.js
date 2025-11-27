@@ -15,12 +15,12 @@
       sub: 'Оборот, начисление и списание баллов, активность клиентов — поверх API v1.'
     },
     clients: {
-      title: 'Клиенты (demo)',
-      sub: 'Список клиентов сервиса лояльности — позже привяжем к API v1.'
+      title: 'Клиенты',
+      sub: 'Агрегация по клиентам на основе /api/v1/merchant/dashboard.'
     },
     transactions: {
-      title: 'Транзакции (demo)',
-      sub: 'История purchase / points_redemption — подключим реальные данные API v1.'
+      title: 'Транзакции',
+      sub: 'Реальные purchase / points_redemption из /api/v1/merchant/dashboard.'
     },
     program: {
       title: 'Правила программы лояльности',
@@ -64,7 +64,7 @@
     });
   });
 
-  // === MOCK: дашборд (значения по-умолчанию, до прихода данных из API) ===
+  // === MOCK: дашборд (до прихода данных из API) ===
   function initMockDashboard() {
     const kpiTurnover = document.getElementById('kpiTurnover');
     const kpiTurnoverTrend = document.getElementById('kpiTurnoverTrend');
@@ -100,16 +100,13 @@
     }
   }
 
-  // === MOCK: клиенты ===
+  // === MOCK: клиенты (fallback, пока нет данных) ===
   function initMockClients() {
     const clientsBody = document.getElementById('clientsTableBody');
     if (!clientsBody) return;
 
     const demoClients = [
-      { id: 'C-1001', name: 'Алиша', phone: '+998 90 123-45-67', balance: '52 300', last: 'сегодня', status: 'Active' },
-      { id: 'C-1002', name: 'Рашид', phone: '+998 97 765-43-21', balance: '8 700', last: 'вчера', status: 'Active' },
-      { id: 'C-1003', name: 'Сардор', phone: '+998 91 111-22-33', balance: '0', last: '7 дней назад', status: 'Dormant' },
-      { id: 'C-1004', name: 'Нилуфар', phone: '+998 93 555-66-77', balance: '120 000', last: '2 дня назад', status: 'VIP' },
+      { id: 'C-1001', name: 'Demo Client', phone: '+998 90 000-00-00', balance: '0', last: '—', status: 'Active' },
     ];
 
     clientsBody.innerHTML = '';
@@ -133,14 +130,13 @@
     });
   }
 
-  // === MOCK: транзакции (будут перезаписаны реальными данными из dashboard) ===
+  // === MOCK: транзакции (до первой загрузки dashboard) ===
   function initMockTransactions() {
     const txBody = document.getElementById('transactionsTableBody');
     if (!txBody) return;
 
     const demoTx = [
-      { id: 'TX-2001', type: 'purchase', amount: '250 000', points: '+12 500', client: 'C-1001', date: 'сегодня, 12:30' },
-      { id: 'TX-2002', type: 'points_redemption', amount: '80 000', points: '–16 000', client: 'C-1004', date: 'сегодня, 11:05' },
+      { id: 'TX-DEMO', type: 'purchase', amount: '0', points: '0', client: '—', date: '—' },
     ];
 
     txBody.innerHTML = '';
@@ -212,7 +208,7 @@
     });
   }
 
-  // === Загрузка dashboard из API v1 + мэппинг на KPI и таблицу транзакций ===
+  // === Загрузка dashboard из API v1 + мэппинг на KPI, транзакции и клиентов ===
   async function loadDashboardFromApi() {
     const rawEl = document.getElementById('dashboardRawPayload');
 
@@ -355,9 +351,72 @@
           txBody.appendChild(tr);
         });
       }
+
+      // --- Таблица клиентов (агрегация по customerId) ---
+      const clientsBody = document.getElementById('clientsTableBody');
+      if (clientsBody && Array.isArray(d.transactions)) {
+        const byCustomer = new Map();
+
+        d.transactions.forEach((t) => {
+          const cid = t.customerId;
+          if (cid == null) return;
+
+          let entry = byCustomer.get(cid);
+          if (!entry) {
+            entry = {
+              customerId: cid,
+              externalId: t.externalId || null,
+              phone: t.phone || null,
+              totalEarned: 0,
+              totalSpent: 0,
+              lastDate: null,
+            };
+            byCustomer.set(cid, entry);
+          }
+
+          entry.totalEarned += Number(t.pointsEarned || 0);
+          entry.totalSpent += Number(t.pointsSpent || 0);
+
+          const created = t.createdAt ? new Date(t.createdAt) : null;
+          if (created && (!entry.lastDate || created > entry.lastDate)) {
+            entry.lastDate = created;
+            // обновляем phone / externalId последним известным
+            entry.phone = t.phone || entry.phone;
+            entry.externalId = t.externalId || entry.externalId;
+          }
+        });
+
+        clientsBody.innerHTML = '';
+
+        byCustomer.forEach((entry) => {
+          const balance = entry.totalEarned - entry.totalSpent;
+          const balanceStr = balance.toLocaleString('ru-RU');
+          const lastStr = entry.lastDate
+            ? entry.lastDate.toLocaleString('ru-RU')
+            : '—';
+
+          // crude статус: пока всех считаем Active
+          const status = 'Active';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${entry.customerId}</td>
+            <td>${entry.externalId || '—'}</td>
+            <td>${entry.phone || '—'}</td>
+            <td>${balanceStr} баллов</td>
+            <td>${lastStr}</td>
+            <td>
+              <span class="pill-soft green">${status}</span>
+            </td>
+          `;
+          clientsBody.appendChild(tr);
+        });
+
+        // если dashboard.customersCount не совпадает с размером map — это тоже ок,
+        // просто разная логика подсчёта; ничего не ломаем.
+      }
     } catch (err) {
       console.error('[dashboard] ошибка запроса к API v1:', err);
-      const rawEl = document.getElementById('dashboardRawPayload');
       if (rawEl) {
         rawEl.textContent =
           '// ошибка при запросе к API v1:\n' +
