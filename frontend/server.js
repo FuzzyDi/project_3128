@@ -15,7 +15,7 @@ function buildConfig() {
   };
 }
 
-// Главная страница (просто статусная, можешь потом заменить/убрать)
+// Главная страница (статус + ссылка в портал)
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="ru">
@@ -30,25 +30,30 @@ app.get('/', (req, res) => {
       padding: 20px; 
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .container { 
-      max-width: 800px; 
+      max-width: 900px; 
+      width: 100%;
       margin: 0 auto; 
       background: white; 
       padding: 30px; 
-      border-radius: 10px;
+      border-radius: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
     h1 { 
       color: #333; 
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
     .status { 
       padding: 15px; 
       border-radius: 8px; 
-      margin: 15px 0; 
+      margin: 10px 0; 
       border-left: 4px solid;
+      font-size: 14px;
     }
     .success { 
       background: #d4edda; 
@@ -67,15 +72,46 @@ app.get('/', (req, res) => {
     }
     .services { 
       display: grid; 
-      grid-template-columns: 1fr 1fr; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
       gap: 15px; 
-      margin-top: 25px;
+      margin-top: 20px;
     }
     .service { 
       background: #f8f9fa; 
       padding: 15px; 
       border-radius: 8px; 
       text-align: center;
+      font-size: 14px;
+    }
+    .service strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+    .portal-link {
+      margin-top: 25px;
+      text-align: center;
+    }
+    .portal-link a {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      background: #4f46e5;
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(79,70,229,0.4);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+    }
+    .portal-link a:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(79,70,229,0.5);
+      background: #4338ca;
+    }
+    .portal-link small {
+      display: block;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #555;
     }
   </style>
 </head>
@@ -90,7 +126,7 @@ app.get('/', (req, res) => {
     
     <div class="status info">
       <strong>🚀 API Status</strong>
-      <div>localhost:8086 - Работает</div>
+      <div>localhost:8086 - Работает (см. docker-compose)</div>
     </div>
     
     <div class="status info">
@@ -100,7 +136,7 @@ app.get('/', (req, res) => {
     
     <div class="status warning">
       <strong>📱 Telegram Bot</strong>
-      <div>Требуется настройка токена</div>
+      <div>Требуется настройка токена и webhook</div>
     </div>
     
     <div class="services">
@@ -110,9 +146,22 @@ app.get('/', (req, res) => {
         <div>/api/v1/merchant</div>
       </div>
       <div class="service">
-        <strong>Тестовые данные</strong>
-        <div>Demo POS: /pos</div>
+        <strong>Демо касса</strong>
+        <div>Virtual POS: /pos</div>
       </div>
+      <div class="service">
+        <strong>Портал мерчанта</strong>
+        <div>/portal</div>
+      </div>
+      <div class="service">
+        <strong>Документация API</strong>
+        <div>docs/api_v1.md (GitHub)</div>
+      </div>
+    </div>
+
+    <div class="portal-link">
+      <a href="/portal">Открыть портал демо-мерчанта</a>
+      <small>Единый вход: дашборд, клиенты, транзакции, POS-демо, API-доки</small>
     </div>
   </div>
 </body>
@@ -134,6 +183,11 @@ app.get('/config.js', (req, res) => {
   const config = buildConfig();
   res.type('application/javascript');
   res.send('window.PROJECT_3128_CONFIG = ' + JSON.stringify(config) + ';');
+});
+
+// Портал (SPA-шаблон). Все /portal* отдаются как единая страница.
+app.get(['/portal', '/portal/*'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portal.html'));
 });
 
 // Страница виртуальной кассы

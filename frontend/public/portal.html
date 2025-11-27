@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Project 3128 — Портал лояльности</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --bg-main: #0b1020;
+      --bg-elevated: #111827;
+      --bg-elevated-soft: #020617;
+      --accent: #6366f1;
+      --accent-soft: rgba(99,102,241,0.15);
+      --accent-strong: #4f46e5;
+      --text-main: #e5e7eb;
+      --text-soft: #9ca3af;
+      --border-subtle: rgba(148,163,184,0.25);
+      --danger: #f97373;
+      --success: #22c55e;
+      --warning: #facc15;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --shadow-soft: 0 18px 45px rgba(15,23,42,0.8);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 45%, #000 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .app-shell {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      padding: 20px 18px;
+      background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.92));
+      border-right: 1px solid rgba(148,163,184,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 10px 6px;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 14px;
+      background: radial-gradient(circle at 30% 10%, #f97316, #e11d48 40%, #6366f1 75%);
+      box-shadow: 0 0 28px rgba(59,130,246,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #f9fafb;
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 15px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .env-pill {
+      margin-top: 2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: rgba(31,41,55,0.9);
+      border: 1px solid rgba(55,65,81,0.9);
+      font-size: 10px;
+      color: #a5b4fc;
+    }
+
+    .env-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
+    }
+
+    .sidebar-section-title {
+      margin: 16px 8px 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-soft);
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+      color: var(--text-soft);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.14s ease;
+    }
+
+    .nav-item:hover {
+      background: rgba(15,23,42,0.95);
+      border-color: rgba(148,163,184,0.35);
+      color: #e5e7eb;
+    }
+
+    .nav-item.active {
+      background: radial-gradient(circle at top left, var(--accent-strong), #a855f7);
+      box-shadow: 0 0 30px rgba(99,102,241,0.7);
+      color: white;
+      border-color: transparent;
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .nav-item.active .nav-icon {
+      background: rgba(15,23,42,0.95);
+    }
+
+    .nav-label-main {
+      flex: 1;
+    }
+
+    .nav-label-sub {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 10px 8px 4px;
+      font-size: 11px;
+      color: var(--text-soft);
+      border-top: 1px solid rgba(31,41,55,0.9);
+    }
+
+    .sidebar-footer a {
+      color: #a5b4fc;
+      text-decoration: none;
+    }
+
+    .sidebar-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Main area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 22px 22px;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-main {
+      flex: 1;
+    }
+
+    .topbar-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .topbar-sub {
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-soft {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.85);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-soft);
+    }
+
+    .primary-button {
+      border: none;
+      outline: none;
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #f9fafb;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 12px 30px rgba(79, 70, 229, 0.55);
+      transition: all 0.12s ease;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 40px rgba(79, 70, 229, 0.75);
+    }
+
+    .primary-button span.icon {
+      font-size: 14px;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 14px;
+    }
+
+    .row-full {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-soft);
+    }
+
+    .card-sub {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.55);
+      color: var(--text-soft);
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .chip-dot.success { background: var(--success); }
+    .chip-dot.warning { background: var(--warning); }
+    .chip-dot.danger { background: var(--danger); }
+
+    /* KPI cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kpi-card {
+      background: radial-gradient(circle at top left, #111827, #020617);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(55,65,81,0.9);
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .kpi-meta {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .kpi-trend-positive {
+      color: var(--success);
+    }
+
+    .kpi-trend-negative {
+      color: var(--danger);
+    }
+
+    .kpi-bg-orbit {
+      position: absolute;
+      inset: -60%;
+      opacity: 0.14;
+      background:
+        radial-gradient(circle at top left, rgba(129,140,248,0.85), transparent 50%),
+        radial-gradient(circle at bottom right, rgba(236,72,153,0.9), transparent 50%);
+      pointer-events: none;
+    }
+
+    .kpi-content {
+      position: relative;
+    }
+
+    /* Placeholder chart */
+    .chart-placeholder {
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1px dashed rgba(148,163,184,0.3);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 4px;
+      align-items: flex-end;
+      height: 120px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.95));
+    }
+
+    .chart-bar {
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(180deg, rgba(129,140,248,0.95), rgba(59,130,246,0.5));
+    }
+
+    .chart-bar.alt {
+      background: linear-gradient(180deg, rgba(236,72,153,0.95), rgba(244,114,182,0.5));
+    }
+
+    /* Tables */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .table thead {
+      background: rgba(15,23,42,0.95);
+    }
+
+    .table th,
+    .table td {
+      padding: 7px 6px;
+      text-align: left;
+      border-bottom: 1px solid rgba(31,41,55,0.95);
+    }
+
+    .table th {
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-soft);
+    }
+
+    .table tr:last-child td {
+      border-bottom-color: transparent;
+    }
+
+    .pill-soft {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--text-soft);
+    }
+
+    .pill-soft.green {
+      border-color: rgba(34,197,94,0.7);
+      color: #bbf7d0;
+      background: rgba(22,163,74,0.18);
+    }
+
+    .pill-soft.amber {
+      border-color: rgba(234,179,8,0.8);
+      color: #fef3c7;
+      background: rgba(202,138,4,0.22);
+    }
+
+    .pill-soft.blue {
+      border-color: rgba(59,130,246,0.7);
+      color: #bfdbfe;
+      background: rgba(37,99,235,0.22);
+    }
+
+    /* Sections visibility */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* POS demo block */
+    .pos-demo-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 10px;
+    }
+
+    .pos-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .pos-input-row input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.85);
+      color: var(--text-main);
+      padding: 7px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .pos-input-row input::placeholder {
+      color: var(--text-soft);
+    }
+
+    .pos-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .secondary-button {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.85);
+      color: var(--text-main);
+      padding: 7px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .secondary-button:hover {
+      border-color: rgba(209,213,219,0.95);
+    }
+
+    .log-area {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      height: 150px;
+      overflow: auto;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(31,41,55,0.95);
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), #020617);
+    }
+
+    .log-line {
+      margin-bottom: 3px;
+      white-space: pre;
+    }
+
+    .log-line .tag {
+      color: #a5b4fc;
+    }
+
+    .log-line .time {
+      color: #6b7280;
+    }
+
+    /* API docs card */
+    .docs-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .docs-links a {
+      color: #a5b4fc;
+      text-decoration: none;
+    }
+
+    .docs-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .sidebar {
+        display: none;
+      }
+      .main {
+        padding: 14px;
+      }
+      .row {
+        grid-template-columns: 1fr;
+      }
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .pos-demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">L</div>
+        <div class="brand-meta">
+          <div class="brand-title">Project 3128</div>
+          <div class="brand-sub">Loyalty Demo Portal</div>
+          <div class="env-pill">
+            <span class="env-dot"></span>
+            <span>DEMO / LOCAL</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">Навигация</div>
+      <div class="nav-group">
+        <div class="nav-item active" data-page="dashboard">
+          <div class="nav-icon">📊</div>
+          <div class="nav-label-main">Дашборд</div>
+        </div>
+        <div class="nav-item" data-page="clients">
+          <div class="nav-icon">👥</div>
+          <div class="nav-label-main">Клиенты</div>
+        </div>
+        <div class="nav-item" data-page="transactions">
+          <div class="nav-icon">💳</div>
+          <div class="nav-label-main">Транзакции</div>
+        </div>
+        <div class="nav-item" data-page="pos">
+          <div class="nav-icon">🧾</div>
+          <div class="nav-label-main">POS Demo</div>
+        </div>
+        <div class="nav-item" data-page="docs">
+          <div class="nav-icon">📚</div>
+          <div class="nav-label-main">API & Docs</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">Инфо</div>
+      <div class="nav-group">
+        <div class="nav-item" data-page="about">
+          <div class="nav-icon">ℹ️</div>
+          <div class="nav-label-main">О демо</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div>Система лояльности для ритейла (demo).</div>
+        <div>Repo: <a href="https://github.com/FuzzyDi/project_3128" target="_blank" rel="noopener noreferrer">GitHub / project_3128</a></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-main">
+          <div class="topbar-title">Дашборд мерчанта (demo)</div>
+          <div class="topbar-sub">Оборот, начисление и списание баллов, активность клиентов — поверх API v1.</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="badge-soft">
+            <span>API v1</span>
+            <span style="width:6px;height:6px;border-radius:999px;background:#22c55e;"></span>
+            <span>connected (demo)</span>
+          </div>
+          <button class="primary-button" id="refreshDashboard">
+            <span class="icon">⟳</span>
+            <span>Обновить данные</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="content">
+
+        <!-- SECTION: DASHBOARD -->
+        <section class="section active" data-section="dashboard">
+          <div class="row">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Общая картина</div>
+                  <div class="card-sub">Demo-мерчант, последние 30 дней</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot success"></span>
+                  <span>Все сервисы в норме</span>
+                </div>
+              </div>
+
+              <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-card">
+                  <div class="kpi-bg-orbit"></div>
+                  <div class="kpi-content">
+                    <div class="kpi-label">Оборот по продажам</div>
+                    <div class="kpi-value" id="kpiTurnover">—</div>
+                    <div class="kpi-meta">
+                      <span id="kpiTurnoverTrend" class="kpi-trend-positive">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-bg-orbit"></div>
+                  <div class="kpi-content">
+                    <div class="kpi-label">Начислено баллов</div>
+                    <div class="kpi-value" id="kpiEarned">—</div>
+                    <div class="kpi-meta">
+                      <span id="kpiEarnedTrend" class="kpi-trend-positive">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-bg-orbit"></div>
+                  <div class="kpi-content">
+                    <div class="kpi-label">Списано баллов</div>
+                    <div class="kpi-value" id="kpiRedeemed">—</div>
+                    <div class="kpi-meta">
+                      <span id="kpiRedeemedTrend" class="kpi-trend-negative">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-bg-orbit"></div>
+                  <div class="kpi-content">
+                    <div class="kpi-label">Активные клиенты</div>
+                    <div class="kpi-value" id="kpiActiveClients">—</div>
+                    <div class="kpi-meta">
+                      <span id="kpiActiveClientsMeta">—</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chart-placeholder" id="chartPlaceholder">
+                <!-- Простая псевдо-гистограмма, пока без реальных данных -->
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Сводка по earn / redeem</div>
+                  <div class="card-sub">Имитация будущих API-данных</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot warning"></span>
+                  <span>Mock-режим</span>
+                </div>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Метрика</th>
+                    <th>Значение (demo)</th>
+                    <th>Комментарий</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Средний % начисления</td>
+                    <td>5%</td>
+                    <td>Например, 5% от суммы чека → баллами</td>
+                  </tr>
+                  <tr>
+                    <td>Средний % списания</td>
+                    <td>до 20%</td>
+                    <td>Ограничение анти-фрод (ниже см. правила)</td>
+                  </tr>
+                  <tr>
+                    <td>Доля чеков с лояльностью</td>
+                    <td>~ 35%</td>
+                    <td>Цель — поднять до 50–60%</td>
+                  </tr>
+                  <tr>
+                    <td>Сгорающие баллы (30 дней)</td>
+                    <td>12 300</td>
+                    <td>Драйвер для кампаний «Напоминание о сгорании»</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: CLIENTS -->
+        <section class="section" data-section="clients">
+          <div class="row-full">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Клиенты</div>
+                  <div class="card-sub">Demo-список: как будет выглядеть реальный список из API</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot warning"></span>
+                  <span>Mock-данные, API позже</span>
+                </div>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID клиента</th>
+                    <th>Имя</th>
+                    <th>Телефон</th>
+                    <th>Баланс</th>
+                    <th>Последняя активность</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                  <!-- Заполняется mock-данными скриптом -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: TRANSACTIONS -->
+        <section class="section" data-section="transactions">
+          <div class="row-full">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Транзакции</div>
+                  <div class="card-sub">Demo-просмотр purchase / points_redemption</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot warning"></span>
+                  <span>В дальнейшем привяжем к API v1</span>
+                </div>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Тип</th>
+                    <th>Сумма</th>
+                    <th>Баллы ±</th>
+                    <th>Клиент</th>
+                    <th>Дата</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                  <!-- Заполняется mock-данными -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: POS DEMO -->
+        <section class="section" data-section="pos">
+          <div class="row-full">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">POS Demo</div>
+                  <div class="card-sub">Упрощённая виртуальная касса поверх API (пока mock)</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.success"></span>
+                  <span>Отдельная реализация /pos.html тоже доступна</span>
+                </div>
+              </div>
+
+              <div class="pos-demo-grid">
+                <div>
+                  <div class="pos-input-row">
+                    <input id="posClientId" placeholder="ID клиента / телефон" />
+                  </div>
+                  <div class="pos-input-row">
+                    <input id="posAmount" placeholder="Сумма чека, например 250000" />
+                  </div>
+                  <div class="pos-buttons">
+                    <button class="primary-button" id="posPurchaseBtn">
+                      <span class="icon">💳</span>
+                      <span>Пробить покупку (mock)</span>
+                    </button>
+                    <button class="secondary-button" id="posRedeemBtn">
+                      <span>✨</span>
+                      <span>Списать баллы (mock)</span>
+                    </button>
+                    <button class="secondary-button" id="posClearLogBtn">
+                      <span>🧹</span>
+                      <span>Очистить лог</span>
+                    </button>
+                    <a href="/pos" class="secondary-button">
+                      <span>↗</span>
+                      <span>Открыть старый POS /pos</span>
+                    </a>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="card-sub" style="margin-bottom:6px;">Лог взаимодействия (mock-режим, имитация запросов к API v1):</div>
+                  <div class="log-area" id="posLog"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: DOCS -->
+        <section class="section" data-section="docs">
+          <div class="row-full">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">API & Документация</div>
+                  <div class="card-sub">Контракт API v1 и точки интеграции</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.success"></span>
+                  <span>Реальный контракт — docs/api_v1.md</span>
+                </div>
+              </div>
+
+              <div class="docs-links">
+                <div>
+                  • Основной контракт API v1 хранится в репозитории:  
+                  <a href="https://github.com/FuzzyDi/project_3128/blob/main/docs/api_v1.md" target="_blank" rel="noopener noreferrer">
+                    docs/api_v1.md (GitHub)
+                  </a>
+                </div>
+                <div>
+                  • Базовый URL API берём из <code>window.PROJECT_3128_CONFIG.apiBaseUrl</code>, отдаваемого через <code>/config.js</code>.
+                </div>
+                <div>
+                  • План: встроить HTML-рендер документации прямо сюда (Markdown → HTML, либо отдельный /docs/api).
+                </div>
+                <div>
+                  • Также здесь можно будет описать интеграцию кассы и Telegram-бота, примеры запросов для мерчанта и операторов.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: ABOUT -->
+        <section class="section" data-section="about">
+          <div class="row-full">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">О демо-проекте</div>
+                  <div class="card-sub">Project 3128 — сервис лояльности для ритейла</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.success"></span>
+                  <span>Architect-first подход</span>
+                </div>
+              </div>
+
+              <div style="font-size:13px; color: var(--text-soft); line-height:1.6;">
+                <p>
+                  Этот портал — «единый вход» в демонстрационный сервис лояльности:
+                  <strong>магазин ↔ сервис лояльности ↔ клиент</strong>.
+                </p>
+                <p>
+                  Backend: Node.js (Express) + PostgreSQL.  
+                  Отдельный frontend-сервер (этот портал), Telegram-бот и docker-compose с nginx как reverse proxy.
+                </p>
+                <p>
+                  Цель: показать полный цикл работы лояльности:
+                  создание мерчанта, регистрация клиентов, начисление и списание баллов, просмотр дашборда и интеграции.
+                </p>
+                <p>
+                  Дальнейшие шаги:
+                  <ul>
+                    <li>Подключить реальные данные дашборда из <code>/api/v1/merchant/dashboard</code>.</li>
+                    <li>Реальный список клиентов и транзакций из API v1.</li>
+                    <li>Настройки программы лояльности (earn / redeem / expiry / анти-фрод).</li>
+                    <li>Витрина отчётов и сценариев интеграции кассы + Telegram-бота.</li>
+                  </ul>
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Конфиг проекта (API base, ключ мерчанта) -->
+  <script src="/config.js"></script>
+  <script>
+    (function () {
+      const navItems = document.querySelectorAll('.nav-item');
+      const sections = document.querySelectorAll('.section');
+      const topbarTitle = document.querySelector('.topbar-title');
+      const topbarSub = document.querySelector('.topbar-sub');
+
+      const titles = {
+        dashboard: {
+          title: 'Дашборд мерчанта (demo)',
+          sub: 'Оборот, начисление и списание баллов, активность клиентов — поверх API v1.'
+        },
+        clients: {
+          title: 'Клиенты (demo)',
+          sub: 'Список клиентов сервиса лояльности — позже привяжем к API v1.'
+        },
+        transactions: {
+          title: 'Транзакции (demo)',
+          sub: 'История purchase / points_redemption — подключим реальные данные API v1.'
+        },
+        pos: {
+          title: 'POS Demo',
+          sub: 'Упрощённая виртуальная касса. Сейчас mock-логика, позже API-запросы.'
+        },
+        docs: {
+          title: 'API & Документация',
+          sub: 'Контракт API v1 и сценарии интеграции (касса, Telegram-бот, внешние системы).'
+        },
+        about: {
+          title: 'О демо-проекте Project 3128',
+          sub: 'Архитектурный playground для сценариев лояльности в ритейле.'
+        }
+      };
+
+      function switchSection(key) {
+        navItems.forEach((item) => {
+          item.classList.toggle('active', item.dataset.page === key);
+        });
+        sections.forEach((section) => {
+          section.classList.toggle('active', section.dataset.section === key);
+        });
+
+        const meta = titles[key] || titles.dashboard;
+        topbarTitle.textContent = meta.title;
+        topbarSub.textContent = meta.sub;
+      }
+
+      navItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          const page = item.dataset.page;
+          switchSection(page);
+        });
+      });
+
+      // Простая инициализация mock-данных (без реального API)
+      function initMockDashboard() {
+        const kpiTurnover = document.getElementById('kpiTurnover');
+        const kpiTurnoverTrend = document.getElementById('kpiTurnoverTrend');
+        const kpiEarned = document.getElementById('kpiEarned');
+        const kpiEarnedTrend = document.getElementById('kpiEarnedTrend');
+        const kpiRedeemed = document.getElementById('kpiRedeemed');
+        const kpiRedeemedTrend = document.getElementById('kpiRedeemedTrend');
+        const kpiActiveClients = document.getElementById('kpiActiveClients');
+        const kpiActiveClientsMeta = document.getElementById('kpiActiveClientsMeta');
+
+        kpiTurnover.textContent = '1 248 300 сум';
+        kpiTurnoverTrend.textContent = '+12% к прошлой неделе';
+
+        kpiEarned.textContent = '62 400 баллов';
+        kpiEarnedTrend.textContent = '+8% начислений';
+
+        kpiRedeemed.textContent = '41 900 баллов';
+        kpiRedeemedTrend.textContent = '–3% списаний';
+
+        kpiActiveClients.textContent = '327';
+        kpiActiveClientsMeta.textContent = 'из 1020 зарегистрированных';
+
+        const chartPlaceholder = document.getElementById('chartPlaceholder');
+        if (chartPlaceholder && !chartPlaceholder.dataset.init) {
+          chartPlaceholder.dataset.init = '1';
+          for (let i = 0; i < 12; i++) {
+            const bar = document.createElement('div');
+            const alt = i % 3 === 0;
+            bar.className = 'chart-bar' + (alt ? ' alt' : '');
+            bar.style.height = (30 + Math.random() * 70) + '%';
+            chartPlaceholder.appendChild(bar);
+          }
+        }
+      }
+
+      function initMockClients() {
+        const clientsBody = document.getElementById('clientsTableBody');
+        const demoClients = [
+          { id: 'C-1001', name: 'Алиша', phone: '+998 90 123-45-67', balance: '52 300', last: 'сегодня', status: 'Active' },
+          { id: 'C-1002', name: 'Рашид', phone: '+998 97 765-43-21', balance: '8 700', last: 'вчера', status: 'Active' },
+          { id: 'C-1003', name: 'Сардор', phone: '+998 91 111-22-33', balance: '0', last: '7 дней назад', status: 'Dormant' },
+          { id: 'C-1004', name: 'Нилуфар', phone: '+998 93 555-66-77', balance: '120 000', last: '2 дня назад', status: 'VIP' },
+        ];
+
+        clientsBody.innerHTML = '';
+        demoClients.forEach((c) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${c.id}</td>
+            <td>${c.name}</td>
+            <td>${c.phone}</td>
+            <td>${c.balance} баллов</td>
+            <td>${c.last}</td>
+            <td>
+              <span class="pill-soft ${
+                c.status === 'VIP' ? 'amber' :
+                c.status === 'Active' ? 'green' :
+                ''
+              }">${c.status}</span>
+            </td>
+          `;
+          clientsBody.appendChild(tr);
+        });
+      }
+
+      function initMockTransactions() {
+        const txBody = document.getElementById('transactionsTableBody');
+        const demoTx = [
+          { id: 'TX-2001', type: 'purchase', amount: '250 000', points: '+12 500', client: 'C-1001', date: 'сегодня, 12:30' },
+          { id: 'TX-2002', type: 'points_redemption', amount: '80 000', points: '–16 000', client: 'C-1004', date: 'сегодня, 11:05' },
+          { id: 'TX-2003', type: 'purchase', amount: '120 000', points: '+6 000', client: 'C-1002', date: 'вчера, 18:10' },
+          { id: 'TX-2004', type: 'purchase', amount: '60 000', points: '+3 000', client: 'C-1003', date: '4 дня назад' },
+        ];
+
+        txBody.innerHTML = '';
+        demoTx.forEach((t) => {
+          const pillClass = t.type === 'purchase' ? 'blue' : 'amber';
+          const label = t.type === 'purchase' ? 'Purchase' : 'Redeem';
+          tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${t.id}</td>
+            <td><span class="pill-soft ${pillClass}">${label}</span></td>
+            <td>${t.amount} сум</td>
+            <td>${t.points}</td>
+            <td>${t.client}</td>
+            <td>${t.date}</td>
+          `;
+          txBody.appendChild(tr);
+        });
+      }
+
+      function logPos(message, type) {
+        const area = document.getElementById('posLog');
+        if (!area) return;
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        const time = new Date().toLocaleTimeString();
+        line.innerHTML = `<span class="time">[${time}]</span> <span class="tag">[${type || 'INFO'}]</span> ${message}`;
+        area.appendChild(line);
+        area.scrollTop = area.scrollHeight;
+      }
+
+      function initPosDemo() {
+        const clientInput = document.getElementById('posClientId');
+        const amountInput = document.getElementById('posAmount');
+        const purchaseBtn = document.getElementById('posPurchaseBtn');
+        const redeemBtn = document.getElementById('posRedeemBtn');
+        const clearBtn = document.getElementById('posClearLogBtn');
+        const logArea = document.getElementById('posLog');
+
+        if (logArea && !logArea.dataset.init) {
+          logArea.dataset.init = '1';
+          logPos('POS Demo готов. Введите клиента и сумму чека, затем выберите действие.', 'INFO');
+          if (window.PROJECT_3128_CONFIG) {
+            logPos(
+              'CONFIG: apiBaseUrl=' + window.PROJECT_3128_CONFIG.apiBaseUrl +
+              ', merchantApiKey=' + (window.PROJECT_3128_CONFIG.merchantApiKey ? '***set***' : '***empty***'),
+              'CONFIG'
+            );
+          }
+        }
+
+        purchaseBtn?.addEventListener('click', () => {
+          const client = clientInput.value || 'C-1001';
+          const amount = amountInput.value || '250000';
+          logPos(`Имитация PURCHASE: client=${client}, amount=${amount}`, 'PURCHASE');
+          logPos(`(TODO) Здесь будет реальный POST /transactions/purchase → API v1`, 'TODO');
+        });
+
+        redeemBtn?.addEventListener('click', () => {
+          const client = clientInput.value || 'C-1001';
+          const amount = amountInput.value || '50000';
+          logPos(`Имитация REDEEM: client=${client}, amount=${amount}`, 'REDEEM');
+          logPos(`(TODO) Здесь будет реальный POST /transactions/redeem → API v1`, 'TODO');
+        });
+
+        clearBtn?.addEventListener('click', () => {
+          if (logArea) {
+            logArea.innerHTML = '';
+          }
+        });
+      }
+
+      const refreshBtn = document.getElementById('refreshDashboard');
+      refreshBtn?.addEventListener('click', () => {
+        initMockDashboard();
+        initMockClients();
+        initMockTransactions();
+      });
+
+      // Первичная инициализация
+      initMockDashboard();
+      initMockClients();
+      initMockTransactions();
+      initPosDemo();
+
+      // В будущем сюда можно добавить реальный fetch к API v1 с использованием window.PROJECT_3128_CONFIG
+      console.log('PROJECT_3128_CONFIG:', window.PROJECT_3128_CONFIG || {});
+    })();
+  </script>
+</body>
+</html>
