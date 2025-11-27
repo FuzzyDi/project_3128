@@ -604,6 +604,25 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Small code blocks */
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      background: rgba(15,23,42,0.9);
+      border-radius: 6px;
+      padding: 2px 4px;
+    }
+
+    pre {
+      background: rgba(15,23,42,0.95);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      overflow-x: auto;
+      border: 1px solid rgba(31,41,55,0.95);
+    }
   </style>
 </head>
 <body>
@@ -634,6 +653,14 @@
         <div class="nav-item" data-page="transactions">
           <div class="nav-icon">💳</div>
           <div class="nav-label-main">Транзакции</div>
+        </div>
+        <div class="nav-item" data-page="program">
+          <div class="nav-icon">⚙️</div>
+          <div class="nav-label-main">Правила программы</div>
+        </div>
+        <div class="nav-item" data-page="integrations">
+          <div class="nav-icon">🔗</div>
+          <div class="nav-label-main">Интеграции</div>
         </div>
         <div class="nav-item" data-page="pos">
           <div class="nav-icon">🧾</div>
@@ -834,7 +861,7 @@
                   <div class="card-sub">Demo-просмотр purchase / points_redemption</div>
                 </div>
                 <div class="chip">
-                  <span class="chip-dot warning"></span>
+                  <span class="chip-dot.warning"></span>
                   <span>В дальнейшем привяжем к API v1</span>
                 </div>
               </div>
@@ -854,6 +881,167 @@
                   <!-- Заполняется mock-данными -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: PROGRAM (Правила программы) -->
+        <section class="section" data-section="program">
+          <div class="row">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Правила программы лояльности</div>
+                  <div class="card-sub">Текущие параметры earn / redeem / expiry (demo)</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.warning"></span>
+                  <span>Пока mock, позже → API v1 /merchant/settings</span>
+                </div>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Параметр</th>
+                    <th>Значение (demo)</th>
+                    <th>Назначение</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>earn_rate_percent</td>
+                    <td>5%</td>
+                    <td>Процент от суммы чека, который начисляется в баллах.</td>
+                  </tr>
+                  <tr>
+                    <td>max_redeem_percent</td>
+                    <td>20%</td>
+                    <td>Максимальная доля чека, которую можно закрыть баллами (анти-фрод).</td>
+                  </tr>
+                  <tr>
+                    <td>min_receipt_amount_for_earn</td>
+                    <td>20 000 сум</td>
+                    <td>Порог чека для начисления баллов.</td>
+                  </tr>
+                  <tr>
+                    <td>points_expiry_days</td>
+                    <td>365</td>
+                    <td>Срок жизни баллов. Используется для расчёта «сгорающих».</td>
+                  </tr>
+                  <tr>
+                    <td>anti_fraud_daily_redeem_limit</td>
+                    <td>500 000 сум</td>
+                    <td>Ограничение на суммарное списание в сутки на одного клиента.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Пояснения к правилам</div>
+                  <div class="card-sub">Как это будет использоваться в реальной логике</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.success"></span>
+                  <span>Готово к привязке к backend</span>
+                </div>
+              </div>
+              <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+                <p>
+                  В боевой версии эти параметры будут храниться в БД в таблице настроек мерчанта
+                  и отдаваться через эндпоинт (например, <code>/api/v1/merchant/settings</code>).
+                </p>
+                <p>
+                  Логика:
+                  <ul>
+                    <li><strong>Начисление (earn)</strong> — при каждом purchase транзакция, сумма * earn_rate_percent → создаём запись «начислено баллов».</li>
+                    <li><strong>Списание (redeem)</strong> — проверяем max_redeem_percent и лимиты анти-фрод перед списанием.</li>
+                    <li><strong>Сгорание</strong> — периодический джоб/отчёт на основе <code>points_expiry_days</code>.</li>
+                  </ul>
+                </p>
+                <p>
+                  Когда будем готовы, сюда же можно вывести форму редактирования этих параметров и отправку PATCH/PUT-запроса
+                  к backend для изменения настроек демо-мерчанта.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: INTEGRATIONS -->
+        <section class="section" data-section="integrations">
+          <div class="row">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Интеграция по API</div>
+                  <div class="card-sub">Базовый URL и ключ демо-мерчанта</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.success"></span>
+                  <span>Данные берём из /config.js</span>
+                </div>
+              </div>
+
+              <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+                <p>
+                  <strong>API base URL:</strong>
+                  <span id="integrationsApiBase">—</span>
+                </p>
+                <p>
+                  <strong>Ключ мерчанта (X-API-KEY):</strong>
+                  <span id="integrationsApiKey">—</span>
+                </p>
+
+                <p>Пример запроса к дашборду мерчанта:</p>
+                <pre><code id="integrationsCurlExample"># будет заполнено на основе apiBaseUrl и X-API-KEY</code></pre>
+
+                <p>
+                  Контракт этого эндпоинта описан в <code>docs/api_v1.md</code> в репозитории.
+                  Здесь можно показывать текущую версию структуры ответа и статус.
+                </p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Касса и Telegram-бот</div>
+                  <div class="card-sub">Сценарии интеграции для демо</div>
+                </div>
+                <div class="chip">
+                  <span class="chip-dot.warning"></span>
+                  <span>Описание + TODO под реальные URL</span>
+                </div>
+              </div>
+
+              <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+                <p><strong>Virtual POS</strong></p>
+                <ul>
+                  <li>Виртуальная касса доступна по адресу <code>/pos</code> (старая страница) и как раздел «POS Demo» в портале.</li>
+                  <li>Будущая цель — сделать её максимально похожей на поведение Set Retail/фискального ПО.</li>
+                </ul>
+
+                <p><strong>Telegram-бот</strong></p>
+                <ul>
+                  <li>Бот живёт в отдельном сервисе <code>telegram-bot/</code> (см. репозиторий).</li>
+                  <li>Интеграция: бот стучится в API v1 по ключу мерчанта и показывает баланс, последние транзакции, промо-механики.</li>
+                  <li>Позже сюда можно добавить:
+                    <ul>
+                      <li>webhook URL, который нужно прописать в BotFather;</li>
+                      <li>описания команд /balance, /history, /link_card и т.п.</li>
+                    </ul>
+                  </li>
+                </ul>
+
+                <p>
+                  Когда docker-окружение будет стабильным, этот блок можно дополнить живым статусом:
+                  «API / OK, BOT / OK, DB / OK» с проверкой health-эндпоинтов.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -993,7 +1181,6 @@
   </div>
 
   <!-- Конфиг проекта (API base, ключ мерчанта) -->
-    <!-- Конфиг проекта (API base, ключ мерчанта) -->
   <script src="/config.js"></script>
   <script>
     (function () {
@@ -1019,6 +1206,14 @@
         transactions: {
           title: 'Транзакции (demo)',
           sub: 'История purchase / points_redemption — подключим реальные данные API v1.'
+        },
+        program: {
+          title: 'Правила программы лояльности',
+          sub: 'Текущие параметры earn/redeem, ограничения и политика сгорания баллов (demo).'
+        },
+        integrations: {
+          title: 'Интеграции',
+          sub: 'API v1, Telegram-бот, POS-интеграция и точки входа.'
         },
         pos: {
           title: 'POS Demo',
@@ -1229,18 +1424,35 @@
 
           // ⚠️ ВАЖНО:
           // Здесь НЕ придумываем структуру ответа.
-          // Как только у нас будет пример JSON из /api/v1/merchant/dashboard,
-          // ниже допишем маппинг полей → kpiTurnover / kpiEarned и т.д.
-          //
-          // Пример шаблона (комментируем, чтобы не ломать ничего):
-          //
-          // const kpiTurnover = document.getElementById('kpiTurnover');
-          // if (data && typeof data.total_turnover !== 'undefined') {
-          //   kpiTurnover.textContent = data.total_turnover.toLocaleString('ru-RU') + ' сум';
-          // }
-
+          // Как только будет пример JSON из /api/v1/merchant/dashboard,
+          // ниже допишем маппинг полей → KPI.
         } catch (err) {
           console.error('[dashboard] ошибка запроса к API v1:', err);
+        }
+      }
+
+      // === Интеграции: заполняем блоки ===
+      function initIntegrationsSection() {
+        const apiBaseEl = document.getElementById('integrationsApiBase');
+        const apiKeyEl = document.getElementById('integrationsApiKey');
+        const curlEl = document.getElementById('integrationsCurlExample');
+
+        if (apiBaseEl) {
+          apiBaseEl.textContent = API_BASE || 'не задан (см. переменную API_BASE_URL в окружении frontend)';
+        }
+        if (apiKeyEl) {
+          apiKeyEl.textContent = MERCHANT_API_KEY
+            ? '*** установлен (X-API-KEY) ***'
+            : 'не задан';
+        }
+        if (curlEl) {
+          const base = API_BASE || 'http://api:8086';
+          const key = MERCHANT_API_KEY || 'YOUR_MERCHANT_API_KEY';
+          curlEl.textContent =
+`curl -X GET \\
+  '${base}/api/v1/merchant/dashboard' \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-API-KEY: ${key}'`;
         }
       }
 
@@ -1258,7 +1470,8 @@
       initMockClients();
       initMockTransactions();
       initPosDemo();
-      loadDashboardFromApi();  // пробуем сходить в API v1 при загрузке
+      loadDashboardFromApi();   // пробуем сходить в API v1 при загрузке
+      initIntegrationsSection();
 
       console.log('PROJECT_3128_CONFIG:', CONFIG);
     })();
