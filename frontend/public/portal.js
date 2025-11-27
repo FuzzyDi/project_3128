@@ -24,7 +24,7 @@
     },
     program: {
       title: 'Правила программы лояльности',
-      sub: 'Текущие параметры earn/redeem, ограничения и политика сгорания баллов (demo).'
+      sub: 'Текущие параметры earn/redeem, ограничения и политика сгорания баллов.'
     },
     integrations: {
       title: 'Интеграции',
@@ -32,7 +32,7 @@
     },
     pos: {
       title: 'POS Demo',
-      sub: 'Упрощённая виртуальная касса. Сейчас mock-логика, позже API-запросы.'
+      sub: 'Виртуальная касса: lookup, расчёт, checkout через API v1.'
     },
     docs: {
       title: 'API & Документация',
@@ -101,6 +101,19 @@
         chartPlaceholder.appendChild(bar);
       }
     }
+
+    // merchant-card плейсхолдеры
+    const merchantName = document.getElementById('merchantName');
+    const merchantCode = document.getElementById('merchantCode');
+    const merchantStatus = document.getElementById('merchantStatus');
+    const merchantCreatedAt = document.getElementById('merchantCreatedAt');
+    const merchantApiKey = document.getElementById('merchantApiKey');
+
+    if (merchantName) merchantName.textContent = '—';
+    if (merchantCode) merchantCode.textContent = '—';
+    if (merchantStatus) merchantStatus.textContent = '—';
+    if (merchantCreatedAt) merchantCreatedAt.textContent = '—';
+    if (merchantApiKey) merchantApiKey.textContent = '—';
   }
 
   // === MOCK: клиенты (fallback, пока нет данных) ===
@@ -171,44 +184,20 @@
     area.scrollTop = area.scrollHeight;
   }
 
-  // === POS Demo (mock) ===
+  // === POS Demo (сейчас отдаём управление на отдельную страницу /pos.html) ===
   function initPosDemo() {
-    const clientInput = document.getElementById('posClientId');
-    const amountInput = document.getElementById('posAmount');
-    const purchaseBtn = document.getElementById('posPurchaseBtn');
-    const redeemBtn = document.getElementById('posRedeemBtn');
-    const clearBtn = document.getElementById('posClearLogBtn');
+    // Внутри портала больше не делаем mock-запросы.
+    // Вся живая логика — в pos.html.
     const logArea = document.getElementById('posLog');
-
     if (logArea && !logArea.dataset.init) {
       logArea.dataset.init = '1';
-      logPos('POS Demo готов. Введите клиента и сумму чека, затем выберите действие.', 'INFO');
+      logPos('POS Demo доступен как отдельная страница /pos.html.', 'INFO');
       logPos(
         'CONFIG: apiBaseUrl=' + (API_BASE || '***not set***') +
         ', merchantApiKey=' + (MERCHANT_API_KEY ? '***set***' : '***empty***'),
         'CONFIG'
       );
     }
-
-    purchaseBtn?.addEventListener('click', () => {
-      const client = clientInput.value || 'C-1001';
-      const amount = amountInput.value || '250000';
-      logPos(`Имитация PURCHASE: client=${client}, amount=${amount}`, 'PURCHASE');
-      logPos(`(TODO) Здесь будет реальный POST /transactions/purchase → API v1`, 'TODO');
-    });
-
-    redeemBtn?.addEventListener('click', () => {
-      const client = clientInput.value || 'C-1001';
-      const amount = amountInput.value || '50000';
-      logPos(`Имитация REDEEM: client=${client}, amount=${amount}`, 'REDEEM');
-      logPos(`(TODO) Здесь будет реальный POST /transactions/redeem → API v1`, 'TODO');
-    });
-
-    clearBtn?.addEventListener('click', () => {
-      if (logArea) {
-        logArea.innerHTML = '';
-      }
-    });
   }
 
   // === Применение настроек программы лояльности из merchant ===
@@ -276,6 +265,53 @@
         merchant.maxPointsPerDay == null
           ? fmtNotSet
           : `${merchant.maxPointsPerDay} баллов в сутки`;
+    }
+  }
+
+  // === Карточка мерчанта на дашборде ===
+  function applyMerchantInfo(merchant) {
+    const nameEl = document.getElementById('merchantName');
+    const codeEl = document.getElementById('merchantCode');
+    const statusEl = document.getElementById('merchantStatus');
+    const createdEl = document.getElementById('merchantCreatedAt');
+    const apiKeyEl = document.getElementById('merchantApiKey');
+
+    if (!merchant) {
+      if (nameEl) nameEl.textContent = '—';
+      if (codeEl) codeEl.textContent = '—';
+      if (statusEl) statusEl.textContent = '—';
+      if (createdEl) createdEl.textContent = '—';
+      if (apiKeyEl) apiKeyEl.textContent = '—';
+      return;
+    }
+
+    if (nameEl) nameEl.textContent = merchant.name || '—';
+    if (codeEl) codeEl.textContent = merchant.code || '—';
+    if (statusEl) statusEl.textContent = merchant.status || '—';
+
+    if (createdEl) {
+      if (merchant.createdAt) {
+        try {
+          const d = new Date(merchant.createdAt);
+          createdEl.textContent = d.toLocaleString('ru-RU');
+        } catch (_) {
+          createdEl.textContent = merchant.createdAt;
+        }
+      } else {
+        createdEl.textContent = '—';
+      }
+    }
+
+    if (apiKeyEl) {
+      const key = merchant.apiKey || '';
+      if (!key) {
+        apiKeyEl.textContent = '—';
+      } else if (key.length <= 6) {
+        apiKeyEl.textContent = key;
+      } else {
+        const suffix = key.slice(-6);
+        apiKeyEl.textContent = '***' + suffix;
+      }
     }
   }
 
@@ -390,6 +426,7 @@
 
       const d = data.dashboard || {};
       applyMerchantSettings(data.merchant);
+      applyMerchantInfo(data.merchant);
 
       // --- KPI из dashboard ---
       const kpiTurnover = document.getElementById('kpiTurnover');

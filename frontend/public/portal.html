@@ -148,7 +148,7 @@
               </div>
 
               <div class="chart-placeholder" id="chartPlaceholder">
-                <!-- Простая псевдо-гистограмма, пока без реальных данных -->
+                <!-- Гистограмма, заполняется из реальных транзакций -->
               </div>
             </div>
 
@@ -195,6 +195,40 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- НОВЫЙ БЛОК: карточка демо-мерчанта -->
+          <div class="row">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Демо-мерчант</div>
+                  <div class="card-sub">Данные из /api/v1/merchant/dashboard</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="kv-row">
+                  <div class="kv-label">Название</div>
+                  <div class="kv-value" id="merchantName">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-label">Код мерчанта</div>
+                  <div class="kv-value" id="merchantCode">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-label">Статус</div>
+                  <div class="kv-value" id="merchantStatus">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-label">Создан</div>
+                  <div class="kv-value" id="merchantCreatedAt">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-label">API Key</div>
+                  <div class="kv-value" id="merchantApiKey">—</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -393,6 +427,7 @@
         <!-- SECTION: INTEGRATIONS -->
         <section class="section" data-section="integrations">
           <div class="row">
+            <!-- Карточка 1: Интеграция по API -->
             <div class="card">
               <div class="card-header">
                 <div>
@@ -405,7 +440,12 @@
                 </div>
               </div>
 
-              <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+              <div class="card-body" style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+                <p>
+                  Все внешние системы (кассы, CRM, витрины, боты) ходят в один и тот же backend
+                  Project 3128 по REST API v1.
+                </p>
+
                 <p>
                   <strong>API base URL:</strong>
                   <span id="integrationsApiBase">—</span>
@@ -415,50 +455,80 @@
                   <span id="integrationsApiKey">—</span>
                 </p>
 
-                <p>Пример запроса к дашборду мерчанта:</p>
+                <p style="margin-top:8px;">Пример запроса к дашборду мерчанта:</p>
                 <pre><code id="integrationsCurlExample"># будет заполнено на основе apiBaseUrl и X-API-KEY</code></pre>
 
-                <p>
-                  Контракт этого эндпоинта описан в <code>docs/api_v1.md</code> в репозитории.
-                  Здесь можно показывать текущую версию структуры ответа и статус.
+                <p style="margin-top:8px;">
+                  Типовой сценарий интеграции:
+                </p>
+                <ul>
+                  <li>касса/сервис передаёт <code>X-API-KEY</code> в заголовке каждого запроса;</li>
+                  <li>для получения сводки по мерчанту используется
+                    <code>GET /api/v1/merchant/dashboard</code>;</li>
+                  <li>операции с чеками идут через
+                    <code>POST /api/v1/integration/lookup</code> и
+                    <code>POST /api/v1/integration/checkout</code>.</li>
+                </ul>
+
+                <p style="margin-top:8px;">
+                  Детальный контракт API описан в файле <code>docs/api_v1.md</code> и дублируется в
+                  разделе «API & Документация» этого портала.
                 </p>
               </div>
             </div>
 
+            <!-- Карточка 2: Касса и Telegram-бот -->
             <div class="card">
               <div class="card-header">
                 <div>
                   <div class="card-title">Касса и Telegram-бот</div>
-                  <div class="card-sub">Сценарии интеграции для демо</div>
+                  <div class="card-sub">Сценарии интеграции для демо-среды</div>
                 </div>
                 <div class="chip">
                   <span class="chip-dot warning"></span>
-                  <span>Описание + TODO под реальные URL</span>
+                  <span>Описание сценариев + POS demo</span>
                 </div>
               </div>
 
-              <div style="font-size:13px;color:var(--text-soft);line-height:1.6%;">
-                <p><strong>Virtual POS</strong></p>
+              <div class="card-body" style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+                <p>
+                  В демо-среде есть два основных потребителя API: виртуальная касса и Telegram-бот.
+                </p>
+
+                <h4 style="margin:8px 0 4px;">1. Виртуальная касса (POS Demo)</h4>
                 <ul>
-                  <li>Виртуальная касса доступна по адресу <code>/pos</code> (старая страница) и как раздел «POS Demo» в портале.</li>
-                  <li>Будущая цель — сделать её максимально похожей на поведение Set Retail/фискального ПО.</li>
+                  <li>UI доступен по ссылке <code>/pos.html</code> (кнопка в разделе «POS Demo» портала);</li>
+                  <li>касса выполняет <code>lookup</code> по временной ссылке/коду клиента;</li>
+                  <li>далее рассчитывает сумму списания и отправляет <code>checkout</code> в API v1;</li>
+                  <li>вся логика работает поверх реальных эндпоинтов
+                    <code>/api/v1/integration/lookup</code> и
+                    <code>/api/v1/integration/checkout</code>.</li>
                 </ul>
 
-                <p><strong>Telegram-бот</strong></p>
+                <p style="margin-top:6px;">
+                  Для быстрой проверки интеграции касса ↔ лояльность достаточно открыть портал,
+                  перейти в раздел «POS Demo» и оттуда запустить виртуальную кассу.
+                </p>
+
+                <h4 style="margin:12px 0 4px;">2. Telegram-бот (demo)</h4>
+                <p>
+                  Telegram-бот отвечает за выдачу временных кодов/ссылок клиенту и запросы баланса.
+                  Технически он работает как ещё один HTTP-клиент к API v1:
+                </p>
                 <ul>
-                  <li>Бот живёт в отдельном сервисе <code>telegram-bot/</code> (см. репозиторий).</li>
-                  <li>Интеграция: бот стучится в API v1 по ключу мерчанта и показывает баланс, последние транзакции, промо-механики.</li>
-                  <li>Позже сюда можно добавить:
+                  <li>при запросе баланса/кода обращается к backend по REST API;</li>
+                  <li>может использовать те же эндпоинты, что и касса, либо отдельные сервисные;</li>
+                  <li>для прод-окружения сюда можно добавить:
                     <ul>
-                      <li>webhook URL, который нужно прописать в BotFather;</li>
-                      <li>описания команд /balance, /history, /link_card и т.п.</li>
+                      <li>URL вебхука для BotFather (webhook → backend);</li>
+                      <li>описание ключевых команд, например <code>/start</code>, <code>/code</code>, <code>/balance</code>.</li>
                     </ul>
                   </li>
                 </ul>
 
-                <p>
-                  Когда docker-окружение будет стабильным, этот блок можно дополнить живым статусом:
-                  «API / OK, BOT / OK, DB / OK» с проверкой health-эндпоинтов.
+                <p style="margin-top:8px;">
+                  В дальнейшем этот блок можно дополнить живым статусом:
+                  «API / OK, BOT / OK, DB / OK» на основе health-эндпоинтов backend и бота.
                 </p>
               </div>
             </div>
@@ -527,6 +597,64 @@
                 <div class="chip">
                   <span class="chip-dot success"></span>
                   <span>Реальный контракт — docs/api_v1.md</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="grid-2">
+                  <div>
+                    <div class="card-sub" style="margin-bottom:8px;">Основные endpoints API v1</div>
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Метод</th>
+                          <th>Путь</th>
+                          <th>Назначение</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><code>GET</code></td>
+                          <td><code>/api/v1/merchant/dashboard</code></td>
+                          <td>Сводка по мерчанту: оборот, баллы, клиенты, последние транзакции.</td>
+                        </tr>
+                        <tr>
+                          <td><code>POST</code></td>
+                          <td><code>/api/v1/integration/lookup</code></td>
+                          <td>Проверка временного кода клиента, получение баланса и ограничений.</td>
+                        </tr>
+                        <tr>
+                          <td><code>POST</code></td>
+                          <td><code>/api/v1/integration/checkout</code></td>
+                          <td>Закрытие чека: начисление/списание баллов, фиксация транзакции.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div>
+                    <div class="card-sub" style="margin-bottom:8px;">Документация</div>
+                    <p class="text-soft">
+                      Детальное описание полей запросов и ответов, статусы ошибок и примеры
+                      интеграции кассы и бота описаны в файле
+                      <code>docs/api_v1.md</code> в репозитории проекта.
+                    </p>
+                    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                      <a
+                        href="https://github.com/FuzzyDi/project_3128/blob/main/docs/api_v1.md"
+                        target="_blank"
+                        class="secondary-button"
+                      >
+                        <span>Открыть API v1 в GitHub</span>
+                      </a>
+                      <a
+                        href="https://github.com/FuzzyDi/project_3128"
+                        target="_blank"
+                        class="ghost-button"
+                      >
+                        <span>Репозиторий Project 3128</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
 
