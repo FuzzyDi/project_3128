@@ -63,6 +63,10 @@ services:
       - "$FRONTEND_PORT:3000"
     depends_on:
       - api
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      API_BASE_URL: ${API_BASE_URL}
+      MERCHANT_API_KEY: ${FRONTEND_MERCHANT_API_KEY}
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -99,9 +103,9 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-    volumes:
-      - ./telegram-bot:/app
-      - /app/node_modules
+    #volumes:
+    #  - ./telegram-bot:/app
+    #  - /app/node_modules
 
 volumes:
   postgres_data:

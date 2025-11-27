@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>PROJECT_3128 — Виртуальная касса</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 16px 0 8px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .row > .field {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.4);
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: 500;
+    }
+    button.secondary {
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .status {
+      margin-top: 6px;
+      font-size: 13px;
+      white-space: pre-line;
+    }
+    .status.ok {
+      color: #4ade80;
+    }
+    .status.err {
+      color: #f97373;
+    }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .grid2 {
+        grid-template-columns: 1fr;
+      }
+    }
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+      white-space: pre-line;
+    }
+    .mono {
+      font-family: Menlo, Consolas, "Roboto Mono", monospace;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #1e293b;
+      color: #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <h1>PROJECT_3128 — Виртуальная касса</h1>
+  <div class="hint">
+    Тестовый стенд для интеграции.<br/>
+    Шаги: 1) Ввести API Key мерчанта. 2) Ввести код клиента (из Telegram). 3) Проверить код. 4) Рассчитать. 5) Закрыть чек.
+  </div>
+
+  <!-- Блок 1. Авторизация мерчанта и код клиента -->
+  <div class="card">
+    <h2>1. Мерчант и код клиента</h2>
+    <div class="row">
+      <div class="field">
+        <label>API Key мерчанта</label>
+        <input id="api-key" class="mono" placeholder="например, sbg_demo_mc4c48c" />
+      </div>
+      <div class="field">
+        <label>Временный код клиента (6 цифр)</label>
+        <input id="session-code" class="mono" placeholder="код из Telegram /code" />
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="btn-lookup" type="button">Проверить код</button>
+    </div>
+    <div id="lookup-status" class="status"></div>
+  </div>
+
+  <!-- Блок 2. Информация о клиенте и настройках мерчанта -->
+  <div class="grid2">
+    <div class="card">
+      <h2>2. Клиент и баланс</h2>
+      <div id="customer-info" class="hint">Код ещё не проверен.</div>
+    </div>
+
+    <div class="card">
+      <h2>3. Настройки лояльности</h2>
+      <div id="rules-info" class="hint">Будут загружены после проверки кода.</div>
+    </div>
+  </div>
+
+  <!-- Блок 3. Расчёт и закрытие чека -->
+  <div class="card">
+    <h2>4. Чек и списание</h2>
+    <div class="row">
+      <div class="field">
+        <label>Номер/ID чека (опционально)</label>
+        <input id="receipt-id" placeholder="например, TEST-0005" />
+      </div>
+      <div class="field">
+        <label>Сумма чека</label>
+        <input id="amount" type="number" min="0" step="1" placeholder="например, 200000" />
+      </div>
+      <div class="field">
+        <label>Списать баллов (0 — не списывать)</label>
+        <input id="redeem" type="number" min="0" step="1" placeholder="например, 300" />
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btn-calc" type="button" class="secondary">Рассчитать</button>
+      <button id="btn-checkout" type="button">Закрыть чек</button>
+    </div>
+
+    <div id="calc-result" class="status"></div>
+    <div id="checkout-result" class="status"></div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8086';
+
+  let currentMerchant = null;
+  let currentCustomer = null;
+  let currentBalance = null;
+  let lastSessionCode = null;
+
+  const elApiKey       = document.getElementById('api-key');
+  const elSessionCode  = document.getElementById('session-code');
+  const elLookupStatus = document.getElementById('lookup-status');
+
+  const elCustomerInfo = document.getElementById('customer-info');
+  const elRulesInfo    = document.getElementById('rules-info');
+
+  const elReceiptId    = document.getElementById('receipt-id');
+  const elAmount       = document.getElementById('amount');
+  const elRedeem       = document.getElementById('redeem');
+
+  const elCalcResult   = document.getElementById('calc-result');
+  const elCheckoutResult = document.getElementById('checkout-result');
+
+  const btnLookup   = document.getElementById('btn-lookup');
+  const btnCalc     = document.getElementById('btn-calc');
+  const btnCheckout = document.getElementById('btn-checkout');
+
+  function setStatus(el, message, type) {
+    el.textContent = message || '';
+    el.classList.remove('ok', 'err');
+    if (!message) return;
+    if (type === 'ok') el.classList.add('ok');
+    if (type === 'err') el.classList.add('err');
+  }
+
+  function formatInt(v) {
+    if (v == null || isNaN(v)) return '—';
+    return Number(v).toLocaleString('ru-RU');
+  }
+
+  // 1) Проверка кода
+  btnLookup.addEventListener('click', async () => {
+    setStatus(elLookupStatus, '');
+    setStatus(elCalcResult, '');
+    setStatus(elCheckoutResult, '');
+
+    currentMerchant = null;
+    currentCustomer = null;
+    currentBalance  = null;
+    lastSessionCode = null;
+
+    elCustomerInfo.textContent = 'Код ещё не проверен.';
+    elRulesInfo.textContent    = 'Будут загружены после проверки кода.';
+
+    const apiKey = elApiKey.value.trim();
+    const code   = elSessionCode.value.trim();
+
+    if (!apiKey) {
+      return setStatus(elLookupStatus, 'API Key обязателен.', 'err');
+    }
+    if (!/^\d{1,6}$/.test(code)) {
+      return setStatus(elLookupStatus, 'Код должен содержать от 1 до 6 цифр.', 'err');
+    }
+
+    btnLookup.disabled = true;
+    try {
+      const resp = await fetch(API_BASE + '/api/v1/integration/lookup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify({ sessionCode: code }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || data.status !== 'OK') {
+        const msg = (data && data.message) || 'Ошибка при запросе.';
+        return setStatus(elLookupStatus, 'Ошибка: ' + msg, 'err');
+      }
+
+      currentMerchant = data.merchant;
+      currentCustomer = data.customer;
+      currentBalance  = data.balance;
+      lastSessionCode = code.padStart(6, '0');
+
+      setStatus(
+        elLookupStatus,
+        'Код принят. Клиент найден.',
+        'ok',
+      );
+
+      const b = currentBalance || {};
+      elCustomerInfo.innerHTML =
+        'Магазин: <span class="mono">' + currentMerchant.name + ' (' + currentMerchant.code + ')</span><br/>' +
+        'Клиент ID: <span class="mono">' + (currentCustomer && currentCustomer.id) + '</span>, ' +
+        'CustomerMerchantId: <span class="mono">' + (currentCustomer && currentCustomer.customerMerchantId) + '</span><br/>' +
+        'Баланс: <b>' + formatInt(b.points) + '</b> баллов<br/>' +
+        'Всего начислено: ' + formatInt(b.total_earned) +
+        ', всего списано: ' + formatInt(b.total_spent) + '<br/>' +
+        'Последняя активность: ' + (b.last_activity || '—');
+
+      const m = currentMerchant;
+      const lines = [];
+      lines.push('Начисление: ' + formatInt(m.earnRatePer1000) + ' балл(ов) за 1000 единиц.');
+      lines.push('Минимальная сумма для начисления: ' + formatInt(m.minReceiptAmountForEarn));
+      lines.push('Минимальное списание: ' + formatInt(m.redeemMinPoints) + ' баллов.');
+      lines.push('Шаг списания: ' + formatInt(m.redeemStep) + ' баллов.');
+      lines.push('Максимум баллами за чек: ' +
+        (m.maxPointsPerReceipt != null ? formatInt(m.maxPointsPerReceipt) + ' баллов' : 'без лимита по чеку.'));
+      lines.push('Лимит по сумме чека: ' +
+        (m.redeemMaxPercent != null ? m.redeemMaxPercent + '% от суммы.' : 'нет ограничения по %.'));
+      lines.push('Максимум по балансу: ' + formatInt(b.points) + ' баллов.');
+
+      elRulesInfo.textContent = lines.join('\n');
+
+    } catch (err) {
+      console.error('lookup error', err);
+      setStatus(elLookupStatus, 'Ошибка сети: ' + (err.message || err), 'err');
+    } finally {
+      btnLookup.disabled = false;
+    }
+  });
+
+  // 2) Локальный расчёт
+  btnCalc.addEventListener('click', () => {
+    setStatus(elCalcResult, '');
+    setStatus(elCheckoutResult, '');
+
+    if (!currentMerchant || !currentCustomer || !currentBalance) {
+      return setStatus(elCalcResult, 'Сначала проверьте код клиента.', 'err');
+    }
+
+    const amtRaw    = elAmount.value.trim();
+    const redeemRaw = elRedeem.value.trim();
+
+    const amt = Number(amtRaw);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return setStatus(elCalcResult, 'Сумма чека должна быть положительным числом.', 'err');
+    }
+
+    let redeem = 0;
+    if (redeemRaw !== '') {
+      redeem = Number(redeemRaw);
+      if (!Number.isFinite(redeem) || redeem < 0) {
+        return setStatus(elCalcResult, 'Списать баллов: должно быть неотрицательное число.', 'err');
+      }
+    }
+
+    const m = currentMerchant;
+    const b = currentBalance;
+
+    // расчёт ограничений
+    const balanceLimit = Number(b.points || 0);
+    let maxByPercent = Infinity;
+    if (m.redeemMaxPercent != null && m.redeemMaxPercent >= 0 && m.redeemMaxPercent <= 100) {
+      maxByPercent = Math.floor((amt * m.redeemMaxPercent) / 100);
+    }
+
+    let maxByReceipt = Infinity;
+    if (m.maxPointsPerReceipt != null && m.maxPointsPerReceipt >= 0) {
+      maxByReceipt = m.maxPointsPerReceipt;
+    }
+
+    const maxAllowed = Math.min(balanceLimit, maxByPercent, maxByReceipt);
+
+    // локальная валидация списания
+    if (redeem > 0) {  // <<< тут была опечатка rede > 0
+      if (m.redeemMinPoints > 0 && redeem < m.redeemMinPoints) {
+        return setStatus(
+          elCalcResult,
+          `Нельзя списать меньше ${m.redeemMinPoints} баллов.`,
+          'err',
+        );
+      }
+
+      if (m.redeemStep > 1 && redeem % m.redeemStep !== 0) {
+        return setStatus(
+          elCalcResult,
+          `Сумма списания должна быть кратна ${m.redeemStep} баллам.`,
+          'err',
+        );
+      }
+
+      if (redeem > maxAllowed) {
+        return setStatus(
+          elCalcResult,
+          `Запрошено списать ${redeem} баллов, максимум допустимо: ${formatInt(maxAllowed)}.\n` +
+          `• По балансу: ${formatInt(balanceLimit)}\n` +
+          `• По проценту от чека: ${isFinite(maxByPercent) ? formatInt(maxByPercent) : 'нет лимита'}\n` +
+          `• По лимиту за чек: ${isFinite(maxByReceipt) ? formatInt(maxByReceipt) : 'нет лимита'}`,
+          'err',
+        );
+      }
+    }
+
+    // Предварительный расчёт начисления
+    let pointsEarned = 0;
+    if (!m.minReceiptAmountForEarn || amt >= m.minReceiptAmountForEarn) {
+      const rate = m.earnRatePer1000 || 1;
+      pointsEarned = Math.floor((amt / 1000) * rate);
+    }
+
+    const toPay = amt - redeem;
+
+    setStatus(
+      elCalcResult,
+      `Расчёт по чеку:\n` +
+      `• Сумма чека: ${formatInt(amt)}\n` +
+      `• Списать баллов: ${formatInt(redeem)}\n` +
+      `• К оплате деньгами: ${formatInt(toPay)}\n` +
+      `• Будет начислено (предварительно): ${formatInt(pointsEarned)} баллов`,
+      'ok',
+    );
+  });
+
+  // 3) Реальный checkout
+  btnCheckout.addEventListener('click', async () => {
+    setStatus(elCheckoutResult, '');
+
+    if (!currentMerchant || !currentCustomer || !currentBalance || !lastSessionCode) {
+      return setStatus(elCheckoutResult, 'Сначала проверьте код клиента.', 'err');
+    }
+
+    const apiKey = elApiKey.value.trim();
+    if (!apiKey) {
+      return setStatus(elCheckoutResult, 'API Key обязателен.', 'err');
+    }
+
+    const amtRaw    = elAmount.value.trim();
+    const redeemRaw = elRedeem.value.trim();
+
+    const amt = Number(amtRaw);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return setStatus(elCheckoutResult, 'Сумма чека должна быть положительным числом.', 'err');
+    }
+
+    let redeem = 0;
+    if (redeemRaw !== '') {
+      redeem = Number(redeemRaw);
+      if (!Number.isFinite(redeem) || redeem < 0) {
+        return setStatus(elCheckoutResult, 'Списать баллов: должно быть неотрицательное число.', 'err');
+      }
+    }
+
+    const body = {
+      sessionCode: lastSessionCode,
+      receiptId: elReceiptId.value.trim() || null,
+      amount: amt,
+      redeemPoints: redeem,
+    };
+
+    btnCheckout.disabled = true;
+    try {
+      const resp = await fetch(API_BASE + '/api/v1/integration/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || data.status !== 'OK') {
+        const msg = (data && data.message) || 'Ошибка при закрытии чека.';
+        return setStatus(elCheckoutResult, 'Ошибка: ' + msg, 'err');
+      }
+
+      currentBalance = data.balance || currentBalance;
+
+      setStatus(
+        elCheckoutResult,
+        `Чек закрыт.\n` +
+        `• Сумма: ${formatInt(body.amount)}\n` +
+        `• Списано баллов: ${formatInt(body.redeemPoints)}\n` +
+        `• Начислено баллов: ${formatInt((data.summary && data.summary.pointsEarned) || 0)}\n` +
+        `• Новый баланс: ${formatInt(currentBalance.points)} (всего начислено: ${formatInt(currentBalance.total_earned)}, списано: ${formatInt(currentBalance.total_spent)})`,
+        'ok',
+      );
+    } catch (err) {
+      console.error('checkout error', err);
+      setStatus(elCheckoutResult, 'Ошибка сети: ' + (err.message || err), 'err');
+    } finally {
+      btnCheckout.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
