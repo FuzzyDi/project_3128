@@ -90,11 +90,14 @@
     const chartPlaceholder = document.getElementById('chartPlaceholder');
     if (chartPlaceholder && !chartPlaceholder.dataset.init) {
       chartPlaceholder.dataset.init = '1';
+      chartPlaceholder.dataset.mock = '1';
+      chartPlaceholder.innerHTML = '';
       for (let i = 0; i < 12; i++) {
         const bar = document.createElement('div');
         const alt = i % 3 === 0;
         bar.className = 'chart-bar' + (alt ? ' alt' : '');
         bar.style.height = (30 + Math.random() * 70) + '%';
+        bar.title = 'Demo data';
         chartPlaceholder.appendChild(bar);
       }
     }
@@ -208,6 +211,138 @@
     });
   }
 
+  // === Применение настроек программы лояльности из merchant ===
+  function applyMerchantSettings(merchant) {
+    if (!merchant) return;
+
+    const earnRateEl = document.getElementById('cfgEarnRatePer1000');
+    const redeemMaxPercentEl = document.getElementById('cfgRedeemMaxPercent');
+    const minReceiptEl = document.getElementById('cfgMinReceiptAmountForEarn');
+    const redeemMinPointsEl = document.getElementById('cfgRedeemMinPoints');
+    const redeemStepEl = document.getElementById('cfgRedeemStep');
+    const maxPerReceiptEl = document.getElementById('cfgMaxPointsPerReceipt');
+    const maxPerDayEl = document.getElementById('cfgMaxPointsPerDay');
+
+    const fmtNotSet = 'не настроено';
+
+    if (earnRateEl) {
+      if (merchant.earnRatePer1000 == null) {
+        earnRateEl.textContent = fmtNotSet;
+      } else {
+        earnRateEl.textContent =
+          `${merchant.earnRatePer1000} баллов за 1 000 сум`;
+      }
+    }
+
+    if (redeemMaxPercentEl) {
+      redeemMaxPercentEl.textContent =
+        merchant.redeemMaxPercent == null
+          ? fmtNotSet
+          : `${merchant.redeemMaxPercent}%`;
+    }
+
+    if (minReceiptEl) {
+      if (merchant.minReceiptAmountForEarn == null) {
+        minReceiptEl.textContent = fmtNotSet;
+      } else {
+        const v = Number(merchant.minReceiptAmountForEarn);
+        minReceiptEl.textContent = v.toLocaleString('ru-RU') + ' сум';
+      }
+    }
+
+    if (redeemMinPointsEl) {
+      redeemMinPointsEl.textContent =
+        merchant.redeemMinPoints == null
+          ? fmtNotSet
+          : `${merchant.redeemMinPoints} баллов`;
+    }
+
+    if (redeemStepEl) {
+      redeemStepEl.textContent =
+        merchant.redeemStep == null
+          ? fmtNotSet
+          : `${merchant.redeemStep} баллов`;
+    }
+
+    if (maxPerReceiptEl) {
+      maxPerReceiptEl.textContent =
+        merchant.maxPointsPerReceipt == null
+          ? fmtNotSet
+          : `${merchant.maxPointsPerReceipt} баллов`;
+    }
+
+    if (maxPerDayEl) {
+      maxPerDayEl.textContent =
+        merchant.maxPointsPerDay == null
+          ? fmtNotSet
+          : `${merchant.maxPointsPerDay} баллов в сутки`;
+    }
+  }
+
+  // === Реальный график дашборда по транзакциям ===
+  function renderDashboardChart(transactions) {
+    const chartPlaceholder = document.getElementById('chartPlaceholder');
+    if (!chartPlaceholder) return;
+
+    chartPlaceholder.innerHTML = '';
+    chartPlaceholder.dataset.init = '1';
+    chartPlaceholder.dataset.mock = '0';
+
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar';
+      bar.style.height = '20%';
+      bar.title = 'Нет данных по транзакциям';
+      chartPlaceholder.appendChild(bar);
+      return;
+    }
+
+    const byDate = new Map();
+
+    transactions.forEach((t) => {
+      if (t.transactionType !== 'purchase' || t.status !== 'completed') return;
+      if (!t.createdAt) return;
+      const d = new Date(t.createdAt);
+      if (Number.isNaN(d.getTime())) return;
+      const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      const prev = byDate.get(key) || 0;
+      byDate.set(key, prev + Number(t.amount || 0));
+    });
+
+    const entries = Array.from(byDate.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+
+    if (entries.length === 0) {
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar';
+      bar.style.height = '20%';
+      bar.title = 'Нет покупок (purchase)';
+      chartPlaceholder.appendChild(bar);
+      return;
+    }
+
+    const lastEntries = entries.slice(-10);
+    const maxValue = lastEntries.reduce(
+      (max, [, value]) => (value > max ? value : max),
+      0
+    );
+
+    lastEntries.forEach(([dateKey, value], idx) => {
+      const bar = document.createElement('div');
+      const alt = idx % 2 === 0;
+      bar.className = 'chart-bar' + (alt ? ' alt' : '');
+      const heightPercent =
+        maxValue > 0 ? 20 + (80 * value) / maxValue : 20;
+      bar.style.height = `${heightPercent}%`;
+      const dateLabel = dateKey.split('-').reverse().join('.');
+      bar.title = `${dateLabel}: ${value.toLocaleString(
+        'ru-RU'
+      )} сум`;
+      chartPlaceholder.appendChild(bar);
+    });
+  }
+
   // === Загрузка dashboard из API v1 + мэппинг на KPI, транзакции и клиентов ===
   async function loadDashboardFromApi() {
     const rawEl = document.getElementById('dashboardRawPayload');
@@ -254,7 +389,7 @@
       }
 
       const d = data.dashboard || {};
-	  applyMerchantSettings(data.merchant);
+      applyMerchantSettings(data.merchant);
 
       // --- KPI из dashboard ---
       const kpiTurnover = document.getElementById('kpiTurnover');
@@ -381,7 +516,6 @@
           const created = t.createdAt ? new Date(t.createdAt) : null;
           if (created && (!entry.lastDate || created > entry.lastDate)) {
             entry.lastDate = created;
-            // обновляем phone / externalId последним известным
             entry.phone = t.phone || entry.phone;
             entry.externalId = t.externalId || entry.externalId;
           }
@@ -396,7 +530,6 @@
             ? entry.lastDate.toLocaleString('ru-RU')
             : '—';
 
-          // crude статус: пока всех считаем Active
           const status = 'Active';
 
           const tr = document.createElement('tr');
@@ -412,10 +545,10 @@
           `;
           clientsBody.appendChild(tr);
         });
-
-        // если dashboard.customersCount не совпадает с размером map — это тоже ок,
-        // просто разная логика подсчёта; ничего не ломаем.
       }
+
+      // --- График по обороту за день ---
+      renderDashboardChart(d.transactions || []);
     } catch (err) {
       console.error('[dashboard] ошибка запроса к API v1:', err);
       if (rawEl) {
@@ -425,74 +558,7 @@
       }
     }
   }
-    // === Применение настроек программы лояльности из merchant ===
-  function applyMerchantSettings(merchant) {
-    if (!merchant) return;
 
-    const earnRateEl = document.getElementById('cfgEarnRatePer1000');
-    const redeemMaxPercentEl = document.getElementById('cfgRedeemMaxPercent');
-    const minReceiptEl = document.getElementById('cfgMinReceiptAmountForEarn');
-    const redeemMinPointsEl = document.getElementById('cfgRedeemMinPoints');
-    const redeemStepEl = document.getElementById('cfgRedeemStep');
-    const maxPerReceiptEl = document.getElementById('cfgMaxPointsPerReceipt');
-    const maxPerDayEl = document.getElementById('cfgMaxPointsPerDay');
-
-    const fmtNotSet = 'не настроено';
-
-    if (earnRateEl) {
-      if (merchant.earnRatePer1000 == null) {
-        earnRateEl.textContent = fmtNotSet;
-      } else {
-        earnRateEl.textContent =
-          `${merchant.earnRatePer1000} баллов за 1 000 сум`;
-      }
-    }
-
-    if (redeemMaxPercentEl) {
-      redeemMaxPercentEl.textContent =
-        merchant.redeemMaxPercent == null
-          ? fmtNotSet
-          : `${merchant.redeemMaxPercent}%`;
-    }
-
-    if (minReceiptEl) {
-      if (merchant.minReceiptAmountForEarn == null) {
-        minReceiptEl.textContent = fmtNotSet;
-      } else {
-        const v = Number(merchant.minReceiptAmountForEarn);
-        minReceiptEl.textContent = v.toLocaleString('ru-RU') + ' сум';
-      }
-    }
-
-    if (redeemMinPointsEl) {
-      redeemMinPointsEl.textContent =
-        merchant.redeemMinPoints == null
-          ? fmtNotSet
-          : `${merchant.redeemMinPoints} баллов`;
-    }
-
-    if (redeemStepEl) {
-      redeemStepEl.textContent =
-        merchant.redeemStep == null
-          ? fmtNotSet
-          : `${merchant.redeemStep} баллов`;
-    }
-
-    if (maxPerReceiptEl) {
-      maxPerReceiptEl.textContent =
-        merchant.maxPointsPerReceipt == null
-          ? fmtNotSet
-          : `${merchant.maxPointsPerReceipt} баллов`;
-    }
-
-    if (maxPerDayEl) {
-      maxPerDayEl.textContent =
-        merchant.maxPointsPerDay == null
-          ? fmtNotSet
-          : `${merchant.maxPointsPerDay} баллов в сутки`;
-    }
-  }
-  
   // === Интеграции: заполняем блоки ===
   function initIntegrationsSection() {
     const apiBaseEl = document.getElementById('integrationsApiBase');
