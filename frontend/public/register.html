@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Project 3128 — Регистрация мерчанта</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #050816;
+        --bg-soft: #0b1020;
+        --accent: #6366f1;
+        --accent-soft: rgba(99, 102, 241, 0.12);
+        --accent-strong: rgba(99, 102, 241, 0.24);
+        --border-soft: rgba(148, 163, 184, 0.25);
+        --text-main: #e5e7eb;
+        --text-soft: #9ca3af;
+        --danger: #f97373;
+        --success: #22c55e;
+        --radius-lg: 18px;
+        --radius-xl: 24px;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.65);
+        --font-main: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background: radial-gradient(circle at top, #1d2457 0, #020617 52%, #000 100%);
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .page {
+        width: 100%;
+        max-width: 520px;
+      }
+
+      .card {
+        background: radial-gradient(circle at top left, #111827 0, #020617 52%);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        padding: 24px 24px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: -120px;
+        background:
+          radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.08), transparent 55%),
+          radial-gradient(circle at 100% 0, rgba(129, 140, 248, 0.18), transparent 55%);
+        opacity: 0.9;
+        pointer-events: none;
+      }
+
+      .card-inner {
+        position: relative;
+        z-index: 1;
+      }
+
+      .tagline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-soft);
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        margin-bottom: 12px;
+      }
+
+      .tagline-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.35);
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+
+      .subtitle {
+        margin: 0 0 20px;
+        font-size: 13px;
+        color: var(--text-soft);
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .badge {
+        font-size: 11px;
+        color: var(--text-soft);
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95), #020617);
+      }
+
+      .form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--text-soft);
+      }
+
+      input[type="text"] {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 999px;
+        border: 1px solid var(--border-soft);
+        color: var(--text-main);
+        font-size: 13px;
+        padding: 8px 12px;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease,
+          background-color 0.15s ease;
+      }
+
+      input[type="text"]:focus {
+        border-color: rgba(129, 140, 248, 0.85);
+        box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4);
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      input::placeholder {
+        color: rgba(148, 163, 184, 0.6);
+      }
+
+      .hint {
+        font-size: 11px;
+        color: var(--text-soft);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 4px;
+      }
+
+      .primary-button {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        color: white;
+        box-shadow: 0 12px 24px rgba(55, 65, 81, 0.5);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: transform 0.12s ease, box-shadow 0.12s ease,
+          filter 0.12s ease;
+        white-space: nowrap;
+      }
+
+      .primary-button:disabled {
+        opacity: 0.65;
+        cursor: default;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .primary-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+        box-shadow: 0 14px 30px rgba(31, 41, 55, 0.75);
+      }
+
+      .primary-button span.icon {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .status {
+        font-size: 11px;
+        color: var(--text-soft);
+        min-height: 16px;
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .status.success {
+        color: var(--success);
+      }
+
+      .result-card {
+        margin-top: 14px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: radial-gradient(circle at top left, var(--accent-soft), #020617);
+        font-size: 12px;
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .result-title {
+        font-weight: 500;
+      }
+
+      .pill {
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--text-soft);
+      }
+
+      .result-row {
+        margin-bottom: 6px;
+      }
+
+      .result-label {
+        font-size: 11px;
+        color: var(--text-soft);
+      }
+
+      .result-value {
+        font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      .code-block {
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(30, 64, 175, 0.8);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 11px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+
+      .footer {
+        margin-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: var(--text-soft);
+      }
+
+      .footer a {
+        color: rgba(129, 140, 248, 0.95);
+        text-decoration: none;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 600px) {
+        .card {
+          padding: 18px 16px 16px;
+        }
+
+        .actions {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .footer {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+        <div class="card-inner">
+          <div class="tagline">
+            <span class="tagline-dot"></span>
+            <span>Project 3128 · Merchant onboarding</span>
+          </div>
+          <h1>Регистрация мерчанта</h1>
+          <p class="subtitle">
+            Одним запросом создаём нового мерчанта, генерируем код и API-ключ.
+            Эти данные можно сразу использовать в интеграции (POS / бот / портал).
+          </p>
+
+          <div class="badge-row">
+            <div class="badge">POST /api/v1/merchants/register</div>
+            <div class="badge">REST JSON · без авторизации</div>
+            <div class="badge">API-key генерируется автоматически</div>
+          </div>
+
+          <form id="merchantRegisterForm" class="form">
+            <div class="form-row">
+              <label for="merchantName">Название мерчанта *</label>
+              <input
+                id="merchantName"
+                type="text"
+                placeholder="Например, &laquo;Demo Shop&raquo;"
+                autocomplete="off"
+                required
+              />
+              <div class="hint">От 1 до 100 символов. Будет отображаться в портале и отчётах.</div>
+            </div>
+
+            <div class="form-row">
+              <label for="merchantCode">Код мерчанта (опционально)</label>
+              <input
+                id="merchantCode"
+                type="text"
+                placeholder="Например, MC4C48C (A-Z0-9)"
+                autocomplete="off"
+              />
+              <div class="hint">
+                Если оставить пустым — код будет сгенерирован автоматически (MC + 6 HEX).
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit" id="registerBtn" class="primary-button">
+                <span class="icon">⚡</span>
+                <span>Зарегистрировать мерчанта</span>
+              </button>
+              <div id="registerStatus" class="status"></div>
+            </div>
+          </form>
+
+          <div id="registerResult" class="result-card" style="display: none;">
+            <div class="result-header">
+              <div class="result-title">Мерчант создан</div>
+              <div class="pill">API credentials</div>
+            </div>
+
+            <div class="result-row">
+              <div class="result-label">ID / Code</div>
+              <div class="result-value" id="resultMerchantId">—</div>
+              <div class="result-value" id="resultMerchantCode">—</div>
+            </div>
+
+            <div class="result-row">
+              <div class="result-label">API-ключ (X-API-Key)</div>
+              <div class="result-value" id="resultApiKey">—</div>
+            </div>
+
+            <div class="result-row">
+              <div class="result-label">Создан</div>
+              <div class="result-value" id="resultCreatedAt">—</div>
+            </div>
+
+            <div class="code-block" id="resultCurlExample"></div>
+          </div>
+
+          <div class="footer">
+            <div>1 шаг · merchant → API-key → затем портал / POS / бот.</div>
+            <div>
+              <a href="/portal">Открыть портал</a>
+              ·
+              <a href="/pos.html">POS demo</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Конфиг проекта (API_BASE_URL и т.п.) -->
+    <script src="/config.js"></script>
+    <!-- Логика регистрации -->
+    <script src="/register.js"></script>
+  </body>
+</html>
