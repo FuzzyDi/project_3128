@@ -993,6 +993,7 @@
   </div>
 
   <!-- Конфиг проекта (API base, ключ мерчанта) -->
+    <!-- Конфиг проекта (API base, ключ мерчанта) -->
   <script src="/config.js"></script>
   <script>
     (function () {
@@ -1000,6 +1001,11 @@
       const sections = document.querySelectorAll('.section');
       const topbarTitle = document.querySelector('.topbar-title');
       const topbarSub = document.querySelector('.topbar-sub');
+
+      // === Конфиг проекта из backend ===
+      const CONFIG = window.PROJECT_3128_CONFIG || {};
+      const API_BASE = (CONFIG.apiBaseUrl || '').replace(/\/+$/, '');
+      const MERCHANT_API_KEY = CONFIG.merchantApiKey || 'sbg_demo_mc4c48c';
 
       const titles = {
         dashboard: {
@@ -1048,7 +1054,7 @@
         });
       });
 
-      // Простая инициализация mock-данных (без реального API)
+      // === MOCK: дашборд ===
       function initMockDashboard() {
         const kpiTurnover = document.getElementById('kpiTurnover');
         const kpiTurnoverTrend = document.getElementById('kpiTurnoverTrend');
@@ -1084,6 +1090,7 @@
         }
       }
 
+      // === MOCK: клиенты ===
       function initMockClients() {
         const clientsBody = document.getElementById('clientsTableBody');
         const demoClients = [
@@ -1114,6 +1121,7 @@
         });
       }
 
+      // === MOCK: транзакции ===
       function initMockTransactions() {
         const txBody = document.getElementById('transactionsTableBody');
         const demoTx = [
@@ -1127,7 +1135,7 @@
         demoTx.forEach((t) => {
           const pillClass = t.type === 'purchase' ? 'blue' : 'amber';
           const label = t.type === 'purchase' ? 'Purchase' : 'Redeem';
-          tr = document.createElement('tr');
+          const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${t.id}</td>
             <td><span class="pill-soft ${pillClass}">${label}</span></td>
@@ -1140,6 +1148,7 @@
         });
       }
 
+      // === Лог для POS demo ===
       function logPos(message, type) {
         const area = document.getElementById('posLog');
         if (!area) return;
@@ -1151,6 +1160,7 @@
         area.scrollTop = area.scrollHeight;
       }
 
+      // === POS Demo (mock) ===
       function initPosDemo() {
         const clientInput = document.getElementById('posClientId');
         const amountInput = document.getElementById('posAmount');
@@ -1162,13 +1172,11 @@
         if (logArea && !logArea.dataset.init) {
           logArea.dataset.init = '1';
           logPos('POS Demo готов. Введите клиента и сумму чека, затем выберите действие.', 'INFO');
-          if (window.PROJECT_3128_CONFIG) {
-            logPos(
-              'CONFIG: apiBaseUrl=' + window.PROJECT_3128_CONFIG.apiBaseUrl +
-              ', merchantApiKey=' + (window.PROJECT_3128_CONFIG.merchantApiKey ? '***set***' : '***empty***'),
-              'CONFIG'
-            );
-          }
+          logPos(
+            'CONFIG: apiBaseUrl=' + (API_BASE || '***not set***') +
+            ', merchantApiKey=' + (MERCHANT_API_KEY ? '***set***' : '***empty***'),
+            'CONFIG'
+          );
         }
 
         purchaseBtn?.addEventListener('click', () => {
@@ -1192,21 +1200,67 @@
         });
       }
 
+      // === Скелет интеграции с API v1 (dashboard) ===
+      async function loadDashboardFromApi() {
+        if (!API_BASE) {
+          console.warn('[dashboard] API_BASE не задан, работаем в mock-режиме');
+          return;
+        }
+
+        const url = API_BASE + '/api/v1/merchant/dashboard';
+
+        try {
+          console.log('[dashboard] fetch', url);
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY': MERCHANT_API_KEY,
+            },
+          });
+
+          if (!res.ok) {
+            console.warn('[dashboard] API ответ не OK:', res.status, res.statusText);
+            return;
+          }
+
+          const data = await res.json();
+          console.log('[dashboard] данные из API v1:', data);
+
+          // ⚠️ ВАЖНО:
+          // Здесь НЕ придумываем структуру ответа.
+          // Как только у нас будет пример JSON из /api/v1/merchant/dashboard,
+          // ниже допишем маппинг полей → kpiTurnover / kpiEarned и т.д.
+          //
+          // Пример шаблона (комментируем, чтобы не ломать ничего):
+          //
+          // const kpiTurnover = document.getElementById('kpiTurnover');
+          // if (data && typeof data.total_turnover !== 'undefined') {
+          //   kpiTurnover.textContent = data.total_turnover.toLocaleString('ru-RU') + ' сум';
+          // }
+
+        } catch (err) {
+          console.error('[dashboard] ошибка запроса к API v1:', err);
+        }
+      }
+
+      // === Кнопка "Обновить" ===
       const refreshBtn = document.getElementById('refreshDashboard');
       refreshBtn?.addEventListener('click', () => {
-        initMockDashboard();
+        initMockDashboard();       // сразу показываем demo-цифры
         initMockClients();
         initMockTransactions();
+        loadDashboardFromApi();    // поверх этого пробуем забрать реальные данные
       });
 
-      // Первичная инициализация
+      // === Первичная инициализация страницы ===
       initMockDashboard();
       initMockClients();
       initMockTransactions();
       initPosDemo();
+      loadDashboardFromApi();  // пробуем сходить в API v1 при загрузке
 
-      // В будущем сюда можно добавить реальный fetch к API v1 с использованием window.PROJECT_3128_CONFIG
-      console.log('PROJECT_3128_CONFIG:', window.PROJECT_3128_CONFIG || {});
+      console.log('PROJECT_3128_CONFIG:', CONFIG);
     })();
   </script>
 </body>
