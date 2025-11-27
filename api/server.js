@@ -465,6 +465,237 @@ app.get('/api/v1/merchant/dashboard', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v1/merchant/transactions
+ * Список транзакций мерчанта с пагинацией и фильтрами.
+ */
+app.get('/api/v1/merchant/transactions', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+
+  // query-параметры
+  const {
+    limit: qLimit,
+    offset: qOffset,
+    type,
+    from,
+    to,
+  } = req.query || {};
+
+  let limit = parseInt(qLimit, 10);
+  if (!Number.isFinite(limit) || limit <= 0 || limit > 200) {
+    limit = 50;
+  }
+
+  let offset = parseInt(qOffset, 10);
+  if (!Number.isFinite(offset) || offset < 0) {
+    offset = 0;
+  }
+
+  try {
+    const merchantRow = await loadMerchantByApiKey(apiKey);
+
+    const where = ['cm.merchant_id = $1'];
+    const params = [merchantRow.id];
+    let paramIndex = 2;
+
+    if (type && typeof type === 'string') {
+      where.push(`t.transaction_type = $${paramIndex++}`);
+      params.push(type);
+    }
+
+    if (from) {
+      where.push(`t.created_at >= $${paramIndex++}`);
+      params.push(new Date(from));
+    }
+
+    if (to) {
+      where.push(`t.created_at < $${paramIndex++}`);
+      params.push(new Date(to));
+    }
+
+    const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const totalRes = await pool.query(
+      `
+      SELECT COUNT(*)::bigint AS cnt
+      FROM transactions t
+      JOIN customer_merchants cm
+        ON cm.id = t.customer_merchant_id
+      ${whereSql}
+      `,
+      params,
+    );
+    const total = Number(totalRes.rows[0]?.cnt ?? 0);
+
+    params.push(limit);
+    params.push(offset);
+
+    const txRes = await pool.query(
+      `
+      SELECT
+        t.id,
+        t.customer_merchant_id,
+        c.id          AS customer_id,
+        c.external_id,
+        c.phone,
+        t.amount,
+        t.points_earned,
+        t.points_spent,
+        t.transaction_type,
+        t.status,
+        t.created_at
+      FROM transactions t
+      JOIN customer_merchants cm
+        ON cm.id = t.customer_merchant_id
+      JOIN customers c
+        ON c.id = cm.customer_id
+      ${whereSql}
+      ORDER BY t.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+      `,
+      params,
+    );
+
+    const transactions = txRes.rows.map((row) => ({
+      id: row.id,
+      customerMerchantId: row.customer_merchant_id,
+      customerId: row.customer_id,
+      externalId: row.external_id,
+      phone: row.phone,
+      amount: Number(row.amount || 0),
+      pointsEarned: Number(row.points_earned || 0),
+      pointsSpent: Number(row.points_spent || 0),
+      transactionType: row.transaction_type,
+      status: row.status,
+      createdAt: row.created_at,
+    }));
+
+    return res.json({
+      status: 'OK',
+      total,
+      limit,
+      offset,
+      transactions,
+    });
+  } catch (err) {
+    if (err.code === 'UNAUTHORIZED') {
+      return res.status(401).json({
+        status: 'ERROR',
+        message: 'API Key required',
+      });
+    }
+    if (err.code === 'FORBIDDEN') {
+      return res.status(403).json({
+        status: 'ERROR',
+        message: 'Invalid API Key',
+      });
+    }
+
+    console.error('[GET /api/v1/merchant/transactions] error:', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      message: 'Internal server error',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/merchant/customers
+ * Список клиентов мерчанта с балансами.
+ */
+app.get('/api/v1/merchant/customers', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+
+  const { limit: qLimit, offset: qOffset } = req.query || {};
+
+  let limit = parseInt(qLimit, 10);
+  if (!Number.isFinite(limit) || limit <= 0 || limit > 200) {
+    limit = 50;
+  }
+
+  let offset = parseInt(qOffset, 10);
+  if (!Number.isFinite(offset) || offset < 0) {
+    offset = 0;
+  }
+
+  try {
+    const merchantRow = await loadMerchantByApiKey(apiKey);
+
+    const totalRes = await pool.query(
+      `
+      SELECT COUNT(*)::bigint AS cnt
+      FROM customer_merchants cm
+      WHERE cm.merchant_id = $1
+      `,
+      [merchantRow.id],
+    );
+    const total = Number(totalRes.rows[0]?.cnt ?? 0);
+
+    const rowsRes = await pool.query(
+      `
+      SELECT
+        cm.id           AS customer_merchant_id,
+        cm.created_at   AS linked_at,
+        c.id            AS customer_id,
+        c.external_id,
+        c.phone,
+        lp.points,
+        lp.total_earned,
+        lp.total_spent,
+        lp.last_activity
+      FROM customer_merchants cm
+      JOIN customers c
+        ON c.id = cm.customer_id
+      LEFT JOIN loyalty_points lp
+        ON lp.customer_merchant_id = cm.id
+      WHERE cm.merchant_id = $1
+      ORDER BY cm.created_at DESC
+      LIMIT $2 OFFSET $3
+      `,
+      [merchantRow.id, limit, offset],
+    );
+
+    const customers = rowsRes.rows.map((row) => ({
+      customerMerchantId: row.customer_merchant_id,
+      customerId: row.customer_id,
+      externalId: row.external_id,
+      phone: row.phone,
+      linkedAt: row.linked_at,
+      points: Number(row.points || 0),
+      totalEarned: Number(row.total_earned || 0),
+      totalSpent: Number(row.total_spent || 0),
+      lastActivity: row.last_activity,
+    }));
+
+    return res.json({
+      status: 'OK',
+      total,
+      limit,
+      offset,
+      customers,
+    });
+  } catch (err) {
+    if (err.code === 'UNAUTHORIZED') {
+      return res.status(401).json({
+        status: 'ERROR',
+        message: 'API Key required',
+      });
+    }
+    if (err.code === 'FORBIDDEN') {
+      return res.status(403).json({
+        status: 'ERROR',
+        message: 'Invalid API Key',
+      });
+    }
+
+    console.error('[GET /api/v1/merchant/customers] error:', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      message: 'Internal server error',
+    });
+  }
+});
+
 // === INTEGRATION API (для касс / внешних систем) ===
 app.use('/api/v1/integration', integrationRoutes);
 
