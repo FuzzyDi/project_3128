@@ -613,6 +613,73 @@ body {
   }
 }
 
+.divider {
+  border: 0;
+  border-top: 1px solid rgba(31, 41, 55, 0.9);
+  margin: 10px 0;
+}
+
+/* API tester */
+.api-tester-form {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.api-tester-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.api-tester-row select {
+  border-radius: 999px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-main);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.api-tester-row input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-main);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.api-tester-row input::placeholder {
+  color: var(--text-soft);
+}
+
+.api-tester-body textarea {
+  width: 100%;
+  min-height: 80px;
+  max-height: 200px;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-main);
+  padding: 6px 8px;
+  font-size: 12px;
+  outline: none;
+}
+
+.api-tester-body textarea::placeholder {
+  color: var(--text-soft);
+}
+
+.api-tester-result pre {
+  max-height: 220px;
+  overflow: auto;
+}
+
 /* Small code blocks */
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;

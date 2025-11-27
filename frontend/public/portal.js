@@ -64,7 +64,7 @@
     });
   });
 
-  // === MOCK: дашборд ===
+  // === MOCK: дашборд (значения по-умолчанию, до прихода данных из API) ===
   function initMockDashboard() {
     const kpiTurnover = document.getElementById('kpiTurnover');
     const kpiTurnoverTrend = document.getElementById('kpiTurnoverTrend');
@@ -75,17 +75,17 @@
     const kpiActiveClients = document.getElementById('kpiActiveClients');
     const kpiActiveClientsMeta = document.getElementById('kpiActiveClientsMeta');
 
-    kpiTurnover.textContent = '1 248 300 сум';
-    kpiTurnoverTrend.textContent = '+12% к прошлой неделе';
+    if (kpiTurnover) kpiTurnover.textContent = '—';
+    if (kpiTurnoverTrend) kpiTurnoverTrend.textContent = 'ожидание данных';
 
-    kpiEarned.textContent = '62 400 баллов';
-    kpiEarnedTrend.textContent = '+8% начислений';
+    if (kpiEarned) kpiEarned.textContent = '—';
+    if (kpiEarnedTrend) kpiEarnedTrend.textContent = 'ожидание данных';
 
-    kpiRedeemed.textContent = '41 900 баллов';
-    kpiRedeemedTrend.textContent = '–3% списаний';
+    if (kpiRedeemed) kpiRedeemed.textContent = '—';
+    if (kpiRedeemedTrend) kpiRedeemedTrend.textContent = 'ожидание данных';
 
-    kpiActiveClients.textContent = '327';
-    kpiActiveClientsMeta.textContent = 'из 1020 зарегистрированных';
+    if (kpiActiveClients) kpiActiveClients.textContent = '—';
+    if (kpiActiveClientsMeta) kpiActiveClientsMeta.textContent = 'ожидание данных';
 
     const chartPlaceholder = document.getElementById('chartPlaceholder');
     if (chartPlaceholder && !chartPlaceholder.dataset.init) {
@@ -103,6 +103,8 @@
   // === MOCK: клиенты ===
   function initMockClients() {
     const clientsBody = document.getElementById('clientsTableBody');
+    if (!clientsBody) return;
+
     const demoClients = [
       { id: 'C-1001', name: 'Алиша', phone: '+998 90 123-45-67', balance: '52 300', last: 'сегодня', status: 'Active' },
       { id: 'C-1002', name: 'Рашид', phone: '+998 97 765-43-21', balance: '8 700', last: 'вчера', status: 'Active' },
@@ -131,14 +133,14 @@
     });
   }
 
-  // === MOCK: транзакции ===
+  // === MOCK: транзакции (будут перезаписаны реальными данными из dashboard) ===
   function initMockTransactions() {
     const txBody = document.getElementById('transactionsTableBody');
+    if (!txBody) return;
+
     const demoTx = [
       { id: 'TX-2001', type: 'purchase', amount: '250 000', points: '+12 500', client: 'C-1001', date: 'сегодня, 12:30' },
       { id: 'TX-2002', type: 'points_redemption', amount: '80 000', points: '–16 000', client: 'C-1004', date: 'сегодня, 11:05' },
-      { id: 'TX-2003', type: 'purchase', amount: '120 000', points: '+6 000', client: 'C-1002', date: 'вчера, 18:10' },
-      { id: 'TX-2004', type: 'purchase', amount: '60 000', points: '+3 000', client: 'C-1003', date: '4 дня назад' },
     ];
 
     txBody.innerHTML = '';
@@ -210,7 +212,7 @@
     });
   }
 
-  // === Скелет интеграции с API v1 (dashboard) + dev-панель ===
+  // === Загрузка dashboard из API v1 + мэппинг на KPI и таблицу транзакций ===
   async function loadDashboardFromApi() {
     const rawEl = document.getElementById('dashboardRawPayload');
 
@@ -255,9 +257,107 @@
         rawEl.textContent = JSON.stringify(data, null, 2);
       }
 
-      // здесь позже подвяжем реальные KPI
+      const d = data.dashboard || {};
+
+      // --- KPI из dashboard ---
+      const kpiTurnover = document.getElementById('kpiTurnover');
+      const kpiTurnoverTrend = document.getElementById('kpiTurnoverTrend');
+      const kpiEarned = document.getElementById('kpiEarned');
+      const kpiEarnedTrend = document.getElementById('kpiEarnedTrend');
+      const kpiRedeemed = document.getElementById('kpiRedeemed');
+      const kpiRedeemedTrend = document.getElementById('kpiRedeemedTrend');
+      const kpiActiveClients = document.getElementById('kpiActiveClients');
+      const kpiActiveClientsMeta = document.getElementById('kpiActiveClientsMeta');
+
+      // Оборот считаем по всем purchase-транзакциям
+      let turnover = 0;
+      if (Array.isArray(d.transactions)) {
+        d.transactions.forEach((t) => {
+          if (t.transactionType === 'purchase' && t.status === 'completed') {
+            turnover += Number(t.amount || 0);
+          }
+        });
+      }
+
+      if (kpiTurnover) {
+        kpiTurnover.textContent =
+          turnover > 0 ? turnover.toLocaleString('ru-RU') + ' сум' : '0 сум';
+      }
+      if (kpiTurnoverTrend) {
+        kpiTurnoverTrend.textContent = 'по всем покупкам (purchase)';
+      }
+
+      if (kpiEarned) {
+        const totalEarned = Number(d.totalEarned || 0);
+        kpiEarned.textContent =
+          totalEarned.toLocaleString('ru-RU') + ' баллов';
+      }
+      if (kpiEarnedTrend) {
+        kpiEarnedTrend.textContent = 'всего начислено (totalEarned)';
+      }
+
+      if (kpiRedeemed) {
+        const totalSpent = Number(d.totalSpent || 0);
+        kpiRedeemed.textContent =
+          totalSpent.toLocaleString('ru-RU') + ' баллов';
+      }
+      if (kpiRedeemedTrend) {
+        kpiRedeemedTrend.textContent = 'всего списано (totalSpent)';
+      }
+
+      if (kpiActiveClients) {
+        const cc = Number(d.customersCount || 0);
+        kpiActiveClients.textContent = cc.toLocaleString('ru-RU');
+      }
+      if (kpiActiveClientsMeta) {
+        const cc = Number(d.customersCount || 0);
+        kpiActiveClientsMeta.textContent =
+          cc > 0
+            ? 'клиентов в программе'
+            : 'пока нет клиентов';
+      }
+
+      // --- Таблица транзакций ---
+      const txBody = document.getElementById('transactionsTableBody');
+      if (txBody && Array.isArray(d.transactions)) {
+        txBody.innerHTML = '';
+        d.transactions.forEach((t) => {
+          const pillClass =
+            t.transactionType === 'purchase' ? 'blue' : 'amber';
+          const label =
+            t.transactionType === 'purchase' ? 'Purchase' : 'Redeem';
+
+          const amount = Number(t.amount || 0);
+          const pEarned = Number(t.pointsEarned || 0);
+          const pSpent = Number(t.pointsSpent || 0);
+          const delta = pEarned - pSpent;
+          const deltaStr =
+            delta > 0 ? '+' + delta : delta < 0 ? String(delta) : '0';
+
+          let dateStr = '';
+          try {
+            dateStr = t.createdAt
+              ? new Date(t.createdAt).toLocaleString('ru-RU')
+              : '';
+          } catch (_) {
+            dateStr = t.createdAt || '';
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${t.id}</td>
+            <td><span class="pill-soft ${pillClass}">${label}</span></td>
+            <td>${amount.toLocaleString('ru-RU')} сум</td>
+            <td>${deltaStr}</td>
+            <td>${t.customerId ?? ''}</td>
+            <td>${dateStr}</td>
+          `;
+          txBody.appendChild(tr);
+        });
+      }
     } catch (err) {
       console.error('[dashboard] ошибка запроса к API v1:', err);
+      const rawEl = document.getElementById('dashboardRawPayload');
       if (rawEl) {
         rawEl.textContent =
           '// ошибка при запросе к API v1:\n' +
@@ -302,6 +402,85 @@
     });
   }
 
+  // === API-тестер (generic) ===
+  function initApiTester() {
+    const methodEl = document.getElementById('apiTesterMethod');
+    const pathEl = document.getElementById('apiTesterPath');
+    const bodyEl = document.getElementById('apiTesterBody');
+    const btn = document.getElementById('apiTesterSendBtn');
+    const resultEl = document.getElementById('apiTesterResult');
+
+    if (!btn || !pathEl || !resultEl || !methodEl) {
+      return;
+    }
+
+    if (!pathEl.value) {
+      pathEl.value = '/api/v1/merchant/dashboard';
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!API_BASE) {
+        resultEl.textContent =
+          '// API_BASE не задан (см. переменную окружения API_BASE_URL для frontend)';
+        return;
+      }
+
+      const method = (methodEl.value || 'GET').toUpperCase();
+      const rawPath = pathEl.value.trim() || '/';
+      const url =
+        API_BASE +
+        (rawPath.startsWith('/') ? rawPath : '/' + rawPath.replace(/^\/+/, ''));
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (MERCHANT_API_KEY) {
+        headers['X-API-KEY'] = MERCHANT_API_KEY;
+      }
+
+      const options = { method, headers };
+
+      if (method !== 'GET' && method !== 'HEAD') {
+        const raw = bodyEl.value.trim();
+        if (raw) {
+          try {
+            JSON.parse(raw);
+          } catch (e) {
+            console.warn('[apiTester] тело невалидный JSON:', e);
+          }
+          options.body = raw;
+        }
+      }
+
+      resultEl.textContent = '// запрос к ' + url + ' ...';
+
+      try {
+        const res = await fetch(url, options);
+        const text = await res.text();
+
+        let parsed = null;
+        try {
+          parsed = JSON.parse(text);
+        } catch (e) {
+          // не JSON — оставим как есть
+        }
+
+        let out = `// HTTP ${res.status} ${res.statusText}\n`;
+        if (parsed !== null) {
+          out += JSON.stringify(parsed, null, 2);
+        } else {
+          out += text;
+        }
+        resultEl.textContent = out;
+      } catch (err) {
+        console.error('[apiTester] ошибка запроса:', err);
+        resultEl.textContent =
+          '// ошибка запроса:\n' +
+          String(err);
+      }
+    });
+  }
+
   // === Кнопка "Обновить" ===
   const refreshBtn = document.getElementById('refreshDashboard');
   refreshBtn?.addEventListener('click', () => {
@@ -318,6 +497,7 @@
   initPosDemo();
   initIntegrationsSection();
   initDashboardRawToggle();
+  initApiTester();
   loadDashboardFromApi();
 
   console.log('PROJECT_3128_CONFIG:', CONFIG);
