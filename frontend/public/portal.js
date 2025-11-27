@@ -16,11 +16,11 @@
     },
     clients: {
       title: 'Клиенты',
-      sub: 'Агрегация по клиентам на основе /api/v1/merchant/dashboard.'
+      sub: 'Реальные клиенты и балансы из /api/v1/merchant/customers.'
     },
     transactions: {
       title: 'Транзакции',
-      sub: 'Реальные purchase / points_redemption из /api/v1/merchant/dashboard.'
+      sub: 'История операций purchase / points_redemption из /api/v1/merchant/transactions.'
     },
     program: {
       title: 'Правила программы лояльности',
@@ -61,6 +61,9 @@
     item.addEventListener('click', () => {
       const page = item.dataset.page;
       switchSection(page);
+
+      // По желанию можно добавить lazy-load по секциям,
+      // но сейчас данные тянем сразу при загрузке портала.
     });
   });
 
@@ -146,7 +149,7 @@
     });
   }
 
-  // === MOCK: транзакции (до первой загрузки dashboard) ===
+  // === MOCK: транзакции (до первой загрузки) ===
   function initMockTransactions() {
     const txBody = document.getElementById('transactionsTableBody');
     if (!txBody) return;
@@ -184,10 +187,8 @@
     area.scrollTop = area.scrollHeight;
   }
 
-  // === POS Demo (сейчас отдаём управление на отдельную страницу /pos.html) ===
+  // === POS Demo (отдельная страница /pos.html) ===
   function initPosDemo() {
-    // Внутри портала больше не делаем mock-запросы.
-    // Вся живая логика — в pos.html.
     const logArea = document.getElementById('posLog');
     if (logArea && !logArea.dataset.init) {
       logArea.dataset.init = '1';
@@ -200,7 +201,7 @@
     }
   }
 
-  // === Применение настроек программы лояльности из merchant ===
+  // === Применение настроек программы лояльности из merchant (для дашборда) ===
   function applyMerchantSettings(merchant) {
     if (!merchant) return;
 
@@ -379,7 +380,7 @@
     });
   }
 
-  // === Загрузка dashboard из API v1 + мэппинг на KPI, транзакции и клиентов ===
+  // === Загрузка dashboard из API v1 ===
   async function loadDashboardFromApi() {
     const rawEl = document.getElementById('dashboardRawPayload');
 
@@ -486,105 +487,7 @@
             : 'пока нет клиентов';
       }
 
-      // --- Таблица транзакций ---
-      const txBody = document.getElementById('transactionsTableBody');
-      if (txBody && Array.isArray(d.transactions)) {
-        txBody.innerHTML = '';
-        d.transactions.forEach((t) => {
-          const pillClass =
-            t.transactionType === 'purchase' ? 'blue' : 'amber';
-          const label =
-            t.transactionType === 'purchase' ? 'Purchase' : 'Redeem';
-
-          const amount = Number(t.amount || 0);
-          const pEarned = Number(t.pointsEarned || 0);
-          const pSpent = Number(t.pointsSpent || 0);
-          const delta = pEarned - pSpent;
-          const deltaStr =
-            delta > 0 ? '+' + delta : delta < 0 ? String(delta) : '0';
-
-          let dateStr = '';
-          try {
-            dateStr = t.createdAt
-              ? new Date(t.createdAt).toLocaleString('ru-RU')
-              : '';
-          } catch (_) {
-            dateStr = t.createdAt || '';
-          }
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${t.id}</td>
-            <td><span class="pill-soft ${pillClass}">${label}</span></td>
-            <td>${amount.toLocaleString('ru-RU')} сум</td>
-            <td>${deltaStr}</td>
-            <td>${t.customerId ?? ''}</td>
-            <td>${dateStr}</td>
-          `;
-          txBody.appendChild(tr);
-        });
-      }
-
-      // --- Таблица клиентов (агрегация по customerId) ---
-      const clientsBody = document.getElementById('clientsTableBody');
-      if (clientsBody && Array.isArray(d.transactions)) {
-        const byCustomer = new Map();
-
-        d.transactions.forEach((t) => {
-          const cid = t.customerId;
-          if (cid == null) return;
-
-          let entry = byCustomer.get(cid);
-          if (!entry) {
-            entry = {
-              customerId: cid,
-              externalId: t.externalId || null,
-              phone: t.phone || null,
-              totalEarned: 0,
-              totalSpent: 0,
-              lastDate: null,
-            };
-            byCustomer.set(cid, entry);
-          }
-
-          entry.totalEarned += Number(t.pointsEarned || 0);
-          entry.totalSpent += Number(t.pointsSpent || 0);
-
-          const created = t.createdAt ? new Date(t.createdAt) : null;
-          if (created && (!entry.lastDate || created > entry.lastDate)) {
-            entry.lastDate = created;
-            entry.phone = t.phone || entry.phone;
-            entry.externalId = t.externalId || entry.externalId;
-          }
-        });
-
-        clientsBody.innerHTML = '';
-
-        byCustomer.forEach((entry) => {
-          const balance = entry.totalEarned - entry.totalSpent;
-          const balanceStr = balance.toLocaleString('ru-RU');
-          const lastStr = entry.lastDate
-            ? entry.lastDate.toLocaleString('ru-RU')
-            : '—';
-
-          const status = 'Active';
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${entry.customerId}</td>
-            <td>${entry.externalId || '—'}</td>
-            <td>${entry.phone || '—'}</td>
-            <td>${balanceStr} баллов</td>
-            <td>${lastStr}</td>
-            <td>
-              <span class="pill-soft green">${status}</span>
-            </td>
-          `;
-          clientsBody.appendChild(tr);
-        });
-      }
-
-      // --- График по обороту за день ---
+      // График по обороту
       renderDashboardChart(d.transactions || []);
     } catch (err) {
       console.error('[dashboard] ошибка запроса к API v1:', err);
@@ -593,6 +496,203 @@
           '// ошибка при запросе к API v1:\n' +
           String(err);
       }
+    }
+  }
+
+  // === Загрузка клиентов из /api/v1/merchant/customers ===
+  async function loadCustomersFromApi() {
+    const body = document.getElementById('clientsTableBody');
+    if (!body) return;
+
+    if (!API_BASE) {
+      console.warn('[clients] API_BASE не задан');
+      return;
+    }
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-soft">Загружаем клиентов...</td>
+      </tr>
+    `;
+
+    const url = API_BASE + '/api/v1/merchant/customers?limit=100&offset=0';
+
+    try {
+      console.log('[clients] fetch', url);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': MERCHANT_API_KEY,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn('[clients] API ответ не OK:', res.status, res.statusText);
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-soft">
+              Ошибка HTTP ${res.status} ${res.statusText}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const data = await res.json();
+      const customers = Array.isArray(data.customers) ? data.customers : [];
+
+      if (customers.length === 0) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-soft">Клиентов пока нет.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      body.innerHTML = '';
+
+      customers.forEach((c) => {
+        const balance = Number(c.points || 0);
+        const balanceStr = balance.toLocaleString('ru-RU') + ' баллов';
+        const lastStr = c.lastActivity
+          ? new Date(c.lastActivity).toLocaleString('ru-RU')
+          : '—';
+
+        let status = 'Active';
+        if (!c.lastActivity) {
+          status = 'New';
+        } else if (balance <= 0) {
+          status = 'No balance';
+        }
+
+        const statusClass =
+          status === 'Active' ? 'green' :
+          status === 'New' ? 'blue' :
+          'amber';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${c.customerId}</td>
+          <td>${c.externalId || '—'}</td>
+          <td>${c.phone || '—'}</td>
+          <td>${balanceStr}</td>
+          <td>${lastStr}</td>
+          <td>
+            <span class="pill-soft ${statusClass}">${status}</span>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    } catch (err) {
+      console.error('[clients] ошибка запроса:', err);
+      body.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-soft">
+            Ошибка при запросе клиентов: ${String(err)}
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // === Загрузка транзакций из /api/v1/merchant/transactions ===
+  async function loadTransactionsFromApi() {
+    const body = document.getElementById('transactionsTableBody');
+    if (!body) return;
+
+    if (!API_BASE) {
+      console.warn('[transactions] API_BASE не задан');
+      return;
+    }
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-soft">Загружаем транзакции...</td>
+      </tr>
+    `;
+
+    const url = API_BASE + '/api/v1/merchant/transactions?limit=100&offset=0';
+
+    try {
+      console.log('[transactions] fetch', url);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': MERCHANT_API_KEY,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn('[transactions] API ответ не OK:', res.status, res.statusText);
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-soft">
+              Ошибка HTTP ${res.status} ${res.statusText}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const data = await res.json();
+      const txs = Array.isArray(data.transactions) ? data.transactions : [];
+
+      if (txs.length === 0) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-soft">Транзакций пока нет.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      body.innerHTML = '';
+
+      txs.forEach((t) => {
+        const pillClass =
+          t.transactionType === 'purchase' ? 'blue' : 'amber';
+        const label =
+          t.transactionType === 'purchase' ? 'Purchase' : 'Redeem';
+
+        const amount = Number(t.amount || 0);
+        const pEarned = Number(t.pointsEarned || 0);
+        const pSpent = Number(t.pointsSpent || 0);
+        const delta = pEarned - pSpent;
+        const deltaStr =
+          delta > 0 ? '+' + delta : delta < 0 ? String(delta) : '0';
+
+        let dateStr = '';
+        try {
+          dateStr = t.createdAt
+            ? new Date(t.createdAt).toLocaleString('ru-RU')
+            : '';
+        } catch (_) {
+          dateStr = t.createdAt || '';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.id}</td>
+          <td><span class="pill-soft ${pillClass}">${label}</span></td>
+          <td>${amount.toLocaleString('ru-RU')} сум</td>
+          <td>${deltaStr}</td>
+          <td>${t.customerId ?? ''}</td>
+          <td>${dateStr}</td>
+        `;
+        body.appendChild(tr);
+      });
+    } catch (err) {
+      console.error('[transactions] ошибка запроса:', err);
+      body.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-soft">
+            Ошибка при запросе транзакций: ${String(err)}
+          </td>
+        </tr>
+      `;
     }
   }
 
@@ -718,6 +818,8 @@
     initMockClients();
     initMockTransactions();
     loadDashboardFromApi();
+    loadCustomersFromApi();
+    loadTransactionsFromApi();
   });
 
   // === Первичная инициализация страницы ===
@@ -728,7 +830,11 @@
   initIntegrationsSection();
   initDashboardRawToggle();
   initApiTester();
+
+  // Живые данные
   loadDashboardFromApi();
+  loadCustomersFromApi();
+  loadTransactionsFromApi();
 
   console.log('PROJECT_3128_CONFIG:', CONFIG);
 })();
