@@ -329,96 +329,178 @@
           </div>
         </section>
 
-        <!-- SECTION: PROGRAM (Правила программы) -->
+        <!-- SECTION: PROGRAM -->
         <section class="section" data-section="program">
-          <div class="row">
+          <div class="row-full">
             <div class="card">
               <div class="card-header">
                 <div>
                   <div class="card-title">Правила программы лояльности</div>
-                  <div class="card-sub">Текущие параметры earn / redeem / expiry (demo)</div>
-                </div>
-                <div class="chip">
-                  <span class="chip-dot warning"></span>
-                  <span>Пока mock, позже → API v1 /merchant/settings</span>
-                </div>
-              </div>
-
-			<table class="table">
-			  <thead>
-				<tr>
-				  <th>Параметр</th>
-				  <th>Значение (из API)</th>
-				  <th>Назначение</th>
-				</tr>
-			  </thead>
-			  <tbody>
-				<tr>
-				  <td>earnRatePer1000</td>
-				  <td id="cfgEarnRatePer1000">не настроено</td>
-				  <td>Сколько баллов начисляется за каждые 1000 сум чека.</td>
-				</tr>
-				<tr>
-				  <td>redeemMaxPercent</td>
-				  <td id="cfgRedeemMaxPercent">не настроено</td>
-				  <td>Максимальная доля чека, которую можно закрыть баллами.</td>
-				</tr>
-				<tr>
-				  <td>minReceiptAmountForEarn</td>
-				  <td id="cfgMinReceiptAmountForEarn">не настроено</td>
-				  <td>Минимальная сумма чека для начисления баллов.</td>
-				</tr>
-				<tr>
-				  <td>redeemMinPoints</td>
-				  <td id="cfgRedeemMinPoints">не настроено</td>
-				  <td>Минимальное количество баллов для списания.</td>
-				</tr>
-				<tr>
-				  <td>redeemStep</td>
-				  <td id="cfgRedeemStep">не настроено</td>
-				  <td>Шаг изменения количества списываемых баллов.</td>
-				</tr>
-				<tr>
-				  <td>maxPointsPerReceipt</td>
-				  <td id="cfgMaxPointsPerReceipt">не настроено</td>
-				  <td>Максимум баллов, которые можно списать в одном чеке.</td>
-				</tr>
-				<tr>
-				  <td>maxPointsPerDay</td>
-				  <td id="cfgMaxPointsPerDay">не настроено</td>
-				  <td>Максимум баллов для списания с одного клиента в сутки.</td>
-				</tr>
-			  </tbody>
-			</table>
-
-            </div>
-
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <div class="card-title">Пояснения к правилам</div>
-                  <div class="card-sub">Как это будет использоваться в реальной логике</div>
+                  <div class="card-sub">
+                    Настройки earn / redeem для мерчанта (читаются из API, можно менять)
+                  </div>
                 </div>
                 <div class="chip">
                   <span class="chip-dot success"></span>
-                  <span>Готово к привязке к backend</span>
+                  <span>Данные: /api/v1/merchant/settings</span>
                 </div>
               </div>
-              <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
-                <p>
-                  В боевой версии эти параметры будут храниться в БД в таблице настроек мерчанта
-                  и отдаваться через эндпоинт (например, <code>/api/v1/merchant/settings</code>).
-                </p>
-                <p>Логика:</p>
-                <ul>
-                  <li><strong>Начисление (earn)</strong> — при каждом purchase, сумма * earn_rate_percent → создаём запись «начислено баллов».</li>
-                  <li><strong>Списание (redeem)</strong> — проверяем max_redeem_percent и лимиты анти-фрод перед списанием.</li>
-                  <li><strong>Сгорание</strong> — периодический джоб/отчёт на основе <code>points_expiry_days</code>.</li>
-                </ul>
-                <p>
-                  Когда будем готовы, сюда же можно вывести форму редактирования этих параметров и отправку PATCH/PUT-запроса
-                  к backend для изменения настроек демо-мерчанта.
-                </p>
+
+              <div class="card-body">
+                <div class="grid-2">
+                  <!-- Левая колонка: read-only текущие настройки -->
+                  <div>
+                    <p class="text-soft" style="margin-bottom:8px;">
+                      Текущие параметры программы лояльности для данного мерчанта.
+                    </p>
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Параметр</th>
+                          <th>Значение</th>
+                          <th>Комментарий</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Начисление</td>
+                          <td id="cfgEarnRatePer1000">не настроено</td>
+                          <td>Сколько баллов начисляется за каждую 1000 сум.</td>
+                        </tr>
+                        <tr>
+                          <td>Макс. % списания</td>
+                          <td id="cfgRedeemMaxPercent">не настроено</td>
+                          <td>Ограничение доли чека, которая может быть оплачена баллами.</td>
+                        </tr>
+                        <tr>
+                          <td>Мин. сумма чека для earn</td>
+                          <td id="cfgMinReceiptAmountForEarn">не настроено</td>
+                          <td>Если чек меньше — баллы не начисляются.</td>
+                        </tr>
+                        <tr>
+                          <td>Мин. списание</td>
+                          <td id="cfgRedeemMinPoints">не настроено</td>
+                          <td>Минимальное количество баллов для списания.</td>
+                        </tr>
+                        <tr>
+                          <td>Шаг списания</td>
+                          <td id="cfgRedeemStep">не настроено</td>
+                          <td>Сумма списания должна быть кратна этому шагу.</td>
+                        </tr>
+                        <tr>
+                          <td>Макс. баллов за чек</td>
+                          <td id="cfgMaxPointsPerReceipt">не настроено</td>
+                          <td>Ограничение анти-фрод по одному чеку.</td>
+                        </tr>
+                        <tr>
+                          <td>Макс. баллов в сутки</td>
+                          <td id="cfgMaxPointsPerDay">не настроено</td>
+                          <td>Будущий лимит списания/начисления в день.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Правая колонка: форма редактирования -->
+                  <div>
+                    <p class="text-soft" style="margin-bottom:8px;">
+                      Здесь можно изменить параметры программы лояльности для текущего мерчанта.
+                      Пустое поле = «очистить / сбросить в NULL».
+                    </p>
+
+                    <form id="programSettingsForm" class="form">
+                      <div class="form-row">
+                        <label for="inputEarnRatePer1000">Начисление (баллов за 1000 сум)</label>
+                        <input
+                          id="inputEarnRatePer1000"
+                          type="number"
+                          min="0"
+                          max="1000"
+                          placeholder="например, 10"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputRedeemMaxPercent">Максимальный % списания</label>
+                        <input
+                          id="inputRedeemMaxPercent"
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="например, 20"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputMinReceiptAmountForEarn">Мин. сумма чека для начисления</label>
+                        <input
+                          id="inputMinReceiptAmountForEarn"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          placeholder="например, 50000"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputRedeemMinPoints">Мин. количество баллов для списания</label>
+                        <input
+                          id="inputRedeemMinPoints"
+                          type="number"
+                          min="0"
+                          placeholder="например, 100"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputRedeemStep">Шаг списания баллов</label>
+                        <input
+                          id="inputRedeemStep"
+                          type="number"
+                          min="1"
+                          placeholder="например, 50"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputMaxPointsPerReceipt">Макс. баллов за чек</label>
+                        <input
+                          id="inputMaxPointsPerReceipt"
+                          type="number"
+                          min="0"
+                          placeholder="например, 10000"
+                        />
+                      </div>
+
+                      <div class="form-row">
+                        <label for="inputMaxPointsPerDay">Макс. баллов в сутки</label>
+                        <input
+                          id="inputMaxPointsPerDay"
+                          type="number"
+                          min="0"
+                          placeholder="например, 50000"
+                        />
+                      </div>
+
+                      <div class="form-row" style="display:flex; gap:8px; align-items:center;">
+                        <button id="programSettingsSaveBtn" type="submit" class="primary-button">
+                          Сохранить настройки
+                        </button>
+                        <button id="programSettingsResetBtn" type="button" class="secondary-button">
+                          Сбросить (перечитать из API)
+                        </button>
+                      </div>
+
+                      <div
+                        id="programSettingsStatus"
+                        class="text-soft"
+                        style="margin-top:6px; min-height:18px;"
+                      >
+                        <!-- сюда пишем статусы -->
+                      </div>
+                    </form>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -755,5 +837,251 @@
 
   <script src="/config.js"></script>
   <script src="/portal.js"></script>
+      <script>
+      (function () {
+        const CONFIG = window.PROJECT_3128_CONFIG || {};
+        const API_BASE = (CONFIG.apiBaseUrl || '').replace(/\/+$/, '');
+        const API_KEY = CONFIG.merchantApiKey || '';
+
+        const form = document.getElementById('programSettingsForm');
+        if (!form) return; // раздел не найден
+
+        const statusEl = document.getElementById('programSettingsStatus');
+        const saveBtn = document.getElementById('programSettingsSaveBtn');
+        const resetBtn = document.getElementById('programSettingsResetBtn');
+
+        const inputEarnRatePer1000 = document.getElementById('inputEarnRatePer1000');
+        const inputRedeemMaxPercent = document.getElementById('inputRedeemMaxPercent');
+        const inputMinReceiptAmountForEarn = document.getElementById('inputMinReceiptAmountForEarn');
+        const inputRedeemMinPoints = document.getElementById('inputRedeemMinPoints');
+        const inputRedeemStep = document.getElementById('inputRedeemStep');
+        const inputMaxPointsPerReceipt = document.getElementById('inputMaxPointsPerReceipt');
+        const inputMaxPointsPerDay = document.getElementById('inputMaxPointsPerDay');
+
+        const cfgEarnRatePer1000 = document.getElementById('cfgEarnRatePer1000');
+        const cfgRedeemMaxPercent = document.getElementById('cfgRedeemMaxPercent');
+        const cfgMinReceiptAmountForEarn = document.getElementById('cfgMinReceiptAmountForEarn');
+        const cfgRedeemMinPoints = document.getElementById('cfgRedeemMinPoints');
+        const cfgRedeemStep = document.getElementById('cfgRedeemStep');
+        const cfgMaxPointsPerReceipt = document.getElementById('cfgMaxPointsPerReceipt');
+        const cfgMaxPointsPerDay = document.getElementById('cfgMaxPointsPerDay');
+
+        function setStatus(msg) {
+          if (statusEl) statusEl.textContent = msg || '';
+        }
+
+        function fmtNotSet() {
+          return 'не настроено';
+        }
+
+        function applyMerchantToUi(merchant) {
+          if (!merchant) return;
+
+          const m = merchant;
+
+          // read-only таблица
+          if (cfgEarnRatePer1000) {
+            if (m.earnRatePer1000 == null) {
+              cfgEarnRatePer1000.textContent = fmtNotSet();
+            } else {
+              cfgEarnRatePer1000.textContent =
+                m.earnRatePer1000 + ' балл(ов) за 1 000 сум';
+            }
+          }
+
+          if (cfgRedeemMaxPercent) {
+            cfgRedeemMaxPercent.textContent =
+              m.redeemMaxPercent == null
+                ? fmtNotSet()
+                : m.redeemMaxPercent + ' %';
+          }
+
+          if (cfgMinReceiptAmountForEarn) {
+            if (m.minReceiptAmountForEarn == null) {
+              cfgMinReceiptAmountForEarn.textContent = fmtNotSet();
+            } else {
+              cfgMinReceiptAmountForEarn.textContent =
+                Number(m.minReceiptAmountForEarn).toLocaleString('ru-RU') + ' сум';
+            }
+          }
+
+          if (cfgRedeemMinPoints) {
+            cfgRedeemMinPoints.textContent =
+              m.redeemMinPoints == null
+                ? fmtNotSet()
+                : m.redeemMinPoints + ' баллов';
+          }
+
+          if (cfgRedeemStep) {
+            cfgRedeemStep.textContent =
+              m.redeemStep == null
+                ? fmtNotSet()
+                : m.redeemStep + ' баллов';
+          }
+
+          if (cfgMaxPointsPerReceipt) {
+            cfgMaxPointsPerReceipt.textContent =
+              m.maxPointsPerReceipt == null
+                ? fmtNotSet()
+                : m.maxPointsPerReceipt + ' баллов';
+          }
+
+          if (cfgMaxPointsPerDay) {
+            cfgMaxPointsPerDay.textContent =
+              m.maxPointsPerDay == null
+                ? fmtNotSet()
+                : m.maxPointsPerDay + ' баллов в сутки';
+          }
+
+          // форма
+          function setInput(input, value) {
+            if (!input) return;
+            if (value == null) input.value = '';
+            else input.value = String(value);
+          }
+
+          setInput(inputEarnRatePer1000, m.earnRatePer1000);
+          setInput(inputRedeemMaxPercent, m.redeemMaxPercent);
+          setInput(inputMinReceiptAmountForEarn, m.minReceiptAmountForEarn);
+          setInput(inputRedeemMinPoints, m.redeemMinPoints);
+          setInput(inputRedeemStep, m.redeemStep);
+          setInput(inputMaxPointsPerReceipt, m.maxPointsPerReceipt);
+          setInput(inputMaxPointsPerDay, m.maxPointsPerDay);
+        }
+
+        async function loadSettings() {
+          if (!API_BASE || !API_KEY) {
+            setStatus('API_BASE или X-API-KEY не заданы (см. config.js)');
+            return;
+          }
+
+          setStatus('Загружаем настройки из /api/v1/merchant/settings ...');
+
+          try {
+            const res = await fetch(API_BASE + '/api/v1/merchant/settings', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': API_KEY,
+              },
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok || data.status === 'ERROR') {
+              setStatus(
+                'Ошибка загрузки настроек: ' +
+                  (data.message || res.status + ' ' + res.statusText),
+              );
+              return;
+            }
+
+            if (data.merchant) {
+              applyMerchantToUi(data.merchant);
+              setStatus('Настройки загружены.');
+            } else {
+              setStatus('Ответ без данных мерчанта');
+            }
+          } catch (err) {
+            console.error('[programSettings] load error:', err);
+            setStatus('Ошибка запроса настроек: ' + String(err));
+          }
+        }
+
+        function buildPayloadFromForm() {
+          const payload = {};
+
+          function readInt(input) {
+            if (!input) return undefined;
+            const raw = input.value.trim();
+            if (raw === '') return null; // очистить
+            const n = parseInt(raw, 10);
+            if (Number.isNaN(n)) {
+              throw new Error(
+                `Невалидное число в поле "${input.previousElementSibling?.textContent || input.id}"`,
+              );
+            }
+            return n;
+          }
+
+          payload.earnRatePer1000 = readInt(inputEarnRatePer1000);
+          payload.redeemMaxPercent = readInt(inputRedeemMaxPercent);
+          payload.minReceiptAmountForEarn = readInt(inputMinReceiptAmountForEarn);
+          payload.redeemMinPoints = readInt(inputRedeemMinPoints);
+          payload.redeemStep = readInt(inputRedeemStep);
+          payload.maxPointsPerReceipt = readInt(inputMaxPointsPerReceipt);
+          payload.maxPointsPerDay = readInt(inputMaxPointsPerDay);
+
+          return payload;
+        }
+
+        async function saveSettings() {
+          if (!API_BASE || !API_KEY) {
+            setStatus('API_BASE или X-API-KEY не заданы (см. config.js)');
+            return;
+          }
+
+          let payload;
+          try {
+            payload = buildPayloadFromForm();
+          } catch (err) {
+            setStatus(String(err.message || err));
+            return;
+          }
+
+          setStatus('Сохраняем настройки ...');
+          if (saveBtn) saveBtn.disabled = true;
+
+          try {
+            const res = await fetch(API_BASE + '/api/v1/merchant/settings', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': API_KEY,
+              },
+              body: JSON.stringify(payload),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok || data.status === 'ERROR') {
+              setStatus(
+                'Ошибка сохранения: ' +
+                  (data.message || res.status + ' ' + res.statusText),
+              );
+              return;
+            }
+
+            if (data.merchant) {
+              applyMerchantToUi(data.merchant);
+              setStatus('Настройки сохранены.');
+            } else {
+              setStatus('Сохранено, но ответ без данных мерчанта.');
+            }
+          } catch (err) {
+            console.error('[programSettings] save error:', err);
+            setStatus('Ошибка запроса: ' + String(err));
+          } finally {
+            if (saveBtn) saveBtn.disabled = false;
+          }
+        }
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          saveSettings();
+        });
+
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            loadSettings();
+          });
+        }
+
+        // первичная загрузка
+        loadSettings();
+      })();
+    </script>
+
 </body>
 </html>
