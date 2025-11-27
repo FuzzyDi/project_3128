@@ -310,42 +310,53 @@
                 </div>
               </div>
 
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Параметр</th>
-                    <th>Значение (demo)</th>
-                    <th>Назначение</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>earn_rate_percent</td>
-                    <td>5%</td>
-                    <td>Процент от суммы чека, который начисляется в баллах.</td>
-                  </tr>
-                  <tr>
-                    <td>max_redeem_percent</td>
-                    <td>20%</td>
-                    <td>Максимальная доля чека, которую можно закрыть баллами (анти-фрод).</td>
-                  </tr>
-                  <tr>
-                    <td>min_receipt_amount_for_earn</td>
-                    <td>20 000 сум</td>
-                    <td>Порог чека для начисления баллов.</td>
-                  </tr>
-                  <tr>
-                    <td>points_expiry_days</td>
-                    <td>365</td>
-                    <td>Срок жизни баллов. Используется для расчёта «сгорающих».</td>
-                  </tr>
-                  <tr>
-                    <td>anti_fraud_daily_redeem_limit</td>
-                    <td>500 000 сум</td>
-                    <td>Ограничение на суммарное списание в сутки на одного клиента.</td>
-                  </tr>
-                </tbody>
-              </table>
+			<table class="table">
+			  <thead>
+				<tr>
+				  <th>Параметр</th>
+				  <th>Значение (из API)</th>
+				  <th>Назначение</th>
+				</tr>
+			  </thead>
+			  <tbody>
+				<tr>
+				  <td>earnRatePer1000</td>
+				  <td id="cfgEarnRatePer1000">не настроено</td>
+				  <td>Сколько баллов начисляется за каждые 1000 сум чека.</td>
+				</tr>
+				<tr>
+				  <td>redeemMaxPercent</td>
+				  <td id="cfgRedeemMaxPercent">не настроено</td>
+				  <td>Максимальная доля чека, которую можно закрыть баллами.</td>
+				</tr>
+				<tr>
+				  <td>minReceiptAmountForEarn</td>
+				  <td id="cfgMinReceiptAmountForEarn">не настроено</td>
+				  <td>Минимальная сумма чека для начисления баллов.</td>
+				</tr>
+				<tr>
+				  <td>redeemMinPoints</td>
+				  <td id="cfgRedeemMinPoints">не настроено</td>
+				  <td>Минимальное количество баллов для списания.</td>
+				</tr>
+				<tr>
+				  <td>redeemStep</td>
+				  <td id="cfgRedeemStep">не настроено</td>
+				  <td>Шаг изменения количества списываемых баллов.</td>
+				</tr>
+				<tr>
+				  <td>maxPointsPerReceipt</td>
+				  <td id="cfgMaxPointsPerReceipt">не настроено</td>
+				  <td>Максимум баллов, которые можно списать в одном чеке.</td>
+				</tr>
+				<tr>
+				  <td>maxPointsPerDay</td>
+				  <td id="cfgMaxPointsPerDay">не настроено</td>
+				  <td>Максимум баллов для списания с одного клиента в сутки.</td>
+				</tr>
+			  </tbody>
+			</table>
+
             </div>
 
             <div class="card">

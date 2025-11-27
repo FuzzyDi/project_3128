@@ -254,6 +254,7 @@
       }
 
       const d = data.dashboard || {};
+	  applyMerchantSettings(data.merchant);
 
       // --- KPI из dashboard ---
       const kpiTurnover = document.getElementById('kpiTurnover');
@@ -424,7 +425,74 @@
       }
     }
   }
+    // === Применение настроек программы лояльности из merchant ===
+  function applyMerchantSettings(merchant) {
+    if (!merchant) return;
 
+    const earnRateEl = document.getElementById('cfgEarnRatePer1000');
+    const redeemMaxPercentEl = document.getElementById('cfgRedeemMaxPercent');
+    const minReceiptEl = document.getElementById('cfgMinReceiptAmountForEarn');
+    const redeemMinPointsEl = document.getElementById('cfgRedeemMinPoints');
+    const redeemStepEl = document.getElementById('cfgRedeemStep');
+    const maxPerReceiptEl = document.getElementById('cfgMaxPointsPerReceipt');
+    const maxPerDayEl = document.getElementById('cfgMaxPointsPerDay');
+
+    const fmtNotSet = 'не настроено';
+
+    if (earnRateEl) {
+      if (merchant.earnRatePer1000 == null) {
+        earnRateEl.textContent = fmtNotSet;
+      } else {
+        earnRateEl.textContent =
+          `${merchant.earnRatePer1000} баллов за 1 000 сум`;
+      }
+    }
+
+    if (redeemMaxPercentEl) {
+      redeemMaxPercentEl.textContent =
+        merchant.redeemMaxPercent == null
+          ? fmtNotSet
+          : `${merchant.redeemMaxPercent}%`;
+    }
+
+    if (minReceiptEl) {
+      if (merchant.minReceiptAmountForEarn == null) {
+        minReceiptEl.textContent = fmtNotSet;
+      } else {
+        const v = Number(merchant.minReceiptAmountForEarn);
+        minReceiptEl.textContent = v.toLocaleString('ru-RU') + ' сум';
+      }
+    }
+
+    if (redeemMinPointsEl) {
+      redeemMinPointsEl.textContent =
+        merchant.redeemMinPoints == null
+          ? fmtNotSet
+          : `${merchant.redeemMinPoints} баллов`;
+    }
+
+    if (redeemStepEl) {
+      redeemStepEl.textContent =
+        merchant.redeemStep == null
+          ? fmtNotSet
+          : `${merchant.redeemStep} баллов`;
+    }
+
+    if (maxPerReceiptEl) {
+      maxPerReceiptEl.textContent =
+        merchant.maxPointsPerReceipt == null
+          ? fmtNotSet
+          : `${merchant.maxPointsPerReceipt} баллов`;
+    }
+
+    if (maxPerDayEl) {
+      maxPerDayEl.textContent =
+        merchant.maxPointsPerDay == null
+          ? fmtNotSet
+          : `${merchant.maxPointsPerDay} баллов в сутки`;
+    }
+  }
+  
   // === Интеграции: заполняем блоки ===
   function initIntegrationsSection() {
     const apiBaseEl = document.getElementById('integrationsApiBase');
