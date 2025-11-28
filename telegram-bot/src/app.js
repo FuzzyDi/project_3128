@@ -29,10 +29,91 @@ bot.on('message', (msg) => {
   );
 });
 
-// /start
-bot.onText(/^\/start(?:@.+)?$/, async (msg) => {
+// /start с поддержкой payload (deep-link)
+bot.onText(/^\/start(?:@.+)?(?:\s+(.+))?$/, async (msg, match) => {
   const chatId = msg.chat.id;
+  const payloadRaw = (match && match[1] ? match[1] : '').trim();
 
+  // Если есть payload из deep-link
+  if (payloadRaw) {
+    console.log('[/start] payload:', payloadRaw);
+
+    // Формат mc_<merchantCode>
+    if (/^mc_/i.test(payloadRaw)) {
+      const merchantCodePart = payloadRaw.slice(3).trim();
+      const merchantCode = merchantCodePart.toUpperCase();
+
+      if (!merchantCode) {
+        await bot.sendMessage(
+          chatId,
+          '❌ Некорректная ссылка. Попросите у персонала новый QR-код.',
+        );
+        return sendDefaultStartMessage(chatId);
+      }
+
+      try {
+        await bot.sendChatAction(chatId, 'typing');
+
+        const url = `${API_BASE_URL}/api/v1/public/merchants/by-code/${encodeURIComponent(
+          merchantCode,
+        )}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok || data.status !== 'OK' || !data.merchant) {
+          const msgText =
+            data && data.message
+              ? data.message
+              : 'Не удалось найти магазин по этому QR-коду.';
+          await bot.sendMessage(
+            chatId,
+            `❌ Ошибка при обработке QR-кода.\n${msgText}`,
+          );
+          return sendDefaultStartMessage(chatId);
+        }
+
+        const merchant = data.merchant;
+
+        const lines = [
+          '👋 Привет! Вы открыли бота программы лояльности.',
+          '',
+          `Магазин: ${merchant.name} (${merchant.code})`,
+          '',
+          'Чтобы привязать ваш Telegram к этой программе:',
+          '• получите токен у кассира или в личном кабинете;',
+          '• отправьте команду:',
+          '/join <полученный_токен>',
+          '',
+          'Основные команды:',
+          '/balance — баланс и уровень',
+          '/history — последние операции',
+          '/code — временный код для оплаты',
+          '/health — проверить, что бот жив',
+        ];
+
+        await bot.sendMessage(chatId, lines.join('\n'));
+        return;
+      } catch (err) {
+        console.error('❌ [/start mc_] error:', err);
+        await bot.sendMessage(
+          chatId,
+          '❌ Внутренняя ошибка при обработке QR-ссылки. Попробуйте ещё раз позже.',
+        );
+        return sendDefaultStartMessage(chatId);
+      }
+    }
+
+    // Payload есть, но формат не поддерживаем — просто покажем базовое приветствие
+    console.log('[/start] unknown payload, fallback to default');
+    return sendDefaultStartMessage(chatId);
+  }
+
+  // Обычный /start без параметров
+  return sendDefaultStartMessage(chatId);
+});
+
+// Базовое приветствие /start без привязки к конкретному магазину
+async function sendDefaultStartMessage(chatId) {
   try {
     await bot.sendMessage(
       chatId,
@@ -47,19 +128,15 @@ bot.onText(/^\/start(?:@.+)?$/, async (msg) => {
         'Команды:',
         '/join <токен> — привязать ваш Telegram к программе лояльности',
         '/balance — показать баланс и уровень',
-        '/history — показать последние операции',
+        '/history — последние операции',
         '/code — получить временный код для оплаты',
-        '/health — проверить доступность бота',
-        '',
-        'Как подключиться:',
-        '• Отсканируйте QR-код в магазине — вы попадёте к боту.',
-        '• Либо используйте команду /join <токен>, если магазин выдал вам токен вручную.',
-      ].join('\n')
+        '/health — проверить, что бот жив',
+      ].join('\n'),
     );
   } catch (err) {
-    console.error('❌ [/start] error:', err);
+    console.error('❌ [sendDefaultStartMessage] error:', err);
   }
-});
+}
 
 // /health
 bot.onText(/^\/health(?:@.+)?$/, async (msg) => {
