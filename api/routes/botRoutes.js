@@ -3,6 +3,7 @@
 
 const express = require('express');
 const { Pool } = require('pg');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -583,6 +584,216 @@ router.post('/session-code', async (req, res) => {
     return res.status(500).json({
       status: 'ERROR',
       message: 'Ошибка при генерации временного кода',
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * POST /api/v1/bot/join-by-merchant-code
+ *
+ * Автоматическая привязка по коду мерчанта (для QR-ссылок).
+ */
+router.post('/join-by-merchant-code', async (req, res) => {
+  const {
+    telegram_id,
+    merchant_code,
+    username,
+    first_name,
+    last_name,
+    phone_number,
+  } = req.body || {};
+
+  if (!telegram_id || !merchant_code) {
+    return res.status(400).json({
+      status: 'ERROR',
+      message: 'telegram_id и merchant_code обязательны',
+    });
+  }
+
+  const trimmedCode = String(merchant_code).trim();
+  if (!trimmedCode) {
+    return res.status(400).json({
+      status: 'ERROR',
+      message: 'merchant_code пуст',
+    });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1) Находим мерчанта по коду
+    const merchantRes = await client.query(
+      `
+      SELECT id, code, name
+        FROM merchants
+       WHERE UPPER(code) = UPPER($1)
+       LIMIT 1
+      `,
+      [trimmedCode],
+    );
+
+    if (merchantRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        status: 'ERROR',
+        message: 'Мерчант с таким кодом не найден',
+      });
+    }
+
+    const merchant = merchantRes.rows[0];
+    const merchantId = merchant.id;
+
+    // 2) Создаём/обновляем telegram_users
+    let telegramUserDbId;
+    const tgRes = await client.query(
+      `SELECT id
+         FROM telegram_users
+        WHERE telegram_id = $1`,
+      [telegram_id],
+    );
+
+    if (tgRes.rowCount === 0) {
+      const insertTg = await client.query(
+        `
+        INSERT INTO telegram_users (
+          telegram_id, username, first_name, last_name,
+          phone_number, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING id
+        `,
+        [
+          telegram_id,
+          username || null,
+          first_name || null,
+          last_name || null,
+          phone_number || null,
+        ],
+      );
+      telegramUserDbId = insertTg.rows[0].id;
+    } else {
+      telegramUserDbId = tgRes.rows[0].id;
+      await client.query(
+        `
+        UPDATE telegram_users
+           SET username     = COALESCE($2, username),
+               first_name   = COALESCE($3, first_name),
+               last_name    = COALESCE($4, last_name),
+               phone_number = COALESCE($5, phone_number),
+               updated_at   = NOW()
+         WHERE id = $1
+        `,
+        [
+          telegramUserDbId,
+          username || null,
+          first_name || null,
+          last_name || null,
+          phone_number || null,
+        ],
+      );
+    }
+
+    // 3) Проверяем, не привязан ли уже этот телеграм к этому мерчанту
+    const existingRes = await client.query(
+      `
+      SELECT
+        cmt.id,
+        cmt.customer_id,
+        cmt.merchant_id,
+        cm.id AS customer_merchant_id
+      FROM customer_merchants_telegram cmt
+      JOIN customer_merchants cm
+        ON cm.customer_id = cmt.customer_id
+       AND cm.merchant_id = cmt.merchant_id
+      WHERE cmt.merchant_id = $1
+        AND cmt.telegram_user_id = $2
+      LIMIT 1
+      `,
+      [merchantId, telegramUserDbId],
+    );
+
+    let customerId;
+    let customerMerchantId;
+    let cmtId;
+
+    if (existingRes.rowCount > 0) {
+      // Уже привязан — idempotent-ответ
+      const ex = existingRes.rows[0];
+      customerId = ex.customer_id;
+      customerMerchantId = ex.customer_merchant_id;
+      cmtId = ex.id;
+    } else {
+      // 4) Создаём нового клиента
+      const insertCustomer = await client.query(
+        `
+        INSERT INTO customers (external_id, phone, created_at)
+        VALUES ($1, $2, NOW())
+        RETURNING id
+        `,
+        [null, null],
+      );
+      customerId = insertCustomer.rows[0].id;
+
+      // 5) Создаём связку customer↔merchant
+      const insertCM = await client.query(
+        `
+        INSERT INTO customer_merchants (customer_id, merchant_id, created_at)
+        VALUES ($1, $2, NOW())
+        RETURNING id
+        `,
+        [customerId, merchantId],
+      );
+      customerMerchantId = insertCM.rows[0].id;
+
+      // 6) Создаём запись в customer_merchants_telegram
+      const joinToken = 'qr_' + crypto.randomBytes(16).toString('hex');
+
+      const insertCmt = await client.query(
+        `
+        INSERT INTO customer_merchants_telegram (
+          customer_id,
+          merchant_id,
+          telegram_user_id,
+          join_token,
+          joined_at
+        ) VALUES ($1, $2, $3, $4, NOW())
+        RETURNING id
+        `,
+        [customerId, merchantId, telegramUserDbId, joinToken],
+      );
+      cmtId = insertCmt.rows[0].id;
+    }
+
+    await client.query('COMMIT');
+
+    return res.json({
+      status: 'OK',
+      message: 'Клиент привязан к мерчанту по коду',
+      merchant: {
+        id: merchantId,
+        code: merchant.code,
+        name: merchant.name,
+      },
+      customer: {
+        id: customerId,
+      },
+      telegram_user: {
+        id: telegramUserDbId,
+        telegram_id,
+      },
+      customer_merchant: {
+        id: customerMerchantId,
+      },
+      link_id: cmtId,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    logAndWrap('join-by-merchant-code', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      message: 'Ошибка при привязке по коду мерчанта',
     });
   } finally {
     client.release();
