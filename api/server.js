@@ -346,6 +346,74 @@ app.get('/api/v1/merchant', async (req, res) => {
   }
 });
 
+// Публичный поиск мерчанта по коду (для Telegram-бота и внешних интеграций)
+app.get('/api/v1/public/merchants/by-code/:code', async (req, res) => {
+  try {
+    const rawCode = (req.params.code || '').trim();
+
+    if (!rawCode) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Merchant code is required',
+      });
+    }
+
+    // Разрешаем только латиницу/цифры, 3..16 символов
+    if (!/^[A-Za-z0-9]{3,16}$/.test(rawCode)) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message:
+          'Invalid merchant code format. Use 3-16 chars [A-Z0-9].',
+      });
+    }
+
+    const upperCode = rawCode.toUpperCase();
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        code,
+        name,
+        created_at
+      FROM merchants
+      WHERE UPPER(code) = $1
+      LIMIT 1
+      `,
+      [upperCode]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        status: 'ERROR',
+        message: 'Merchant not found',
+      });
+    }
+
+    const row = result.rows[0];
+
+    // В публичном эндпоинте НЕ отдаём apiKey
+    const merchant = {
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      createdAt: row.created_at,
+      status: 'active',
+    };
+
+    return res.json({
+      status: 'OK',
+      merchant,
+    });
+  } catch (err) {
+    console.error('[GET /api/v1/public/merchants/by-code/:code] error:', err);
+    return res.status(500).json({
+      status: 'ERROR',
+      message: 'Internal server error',
+    });
+  }
+});
+
 /**
  * GET /api/v1/merchant/dashboard
  * Сводка по мерчанту:
