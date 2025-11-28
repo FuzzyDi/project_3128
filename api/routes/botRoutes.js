@@ -259,28 +259,30 @@ router.get('/balance', async (req, res) => {
   }
 
   try {
-    const baseRes = await pool.query(
-      `
-      SELECT
-        tu.id AS telegram_user_id,
-        cmt.customer_id,
-        cmt.merchant_id,
-        cm.id AS customer_merchant_id,
-        m.code AS merchant_code,
-        m.name AS merchant_name
-      FROM telegram_users tu
-      JOIN customer_merchants_telegram cmt
-        ON cmt.telegram_user_id = tu.id
-      JOIN customer_merchants cm
-        ON cm.customer_id = cmt.customer_id
-       AND cm.merchant_id = cmt.merchant_id
-      JOIN merchants m
-        ON m.id = cmt.merchant_id
-      WHERE tu.telegram_id = $1
-      LIMIT 1
-      `,
-      [telegram_id],
-    );
+	const baseRes = await pool.query(
+	  `
+	  SELECT
+		tu.id AS telegram_user_id,
+		cmt.customer_id,
+		cmt.merchant_id,
+		cm.id AS customer_merchant_id,
+		m.code AS merchant_code,
+		m.name AS merchant_name
+	  FROM telegram_users tu
+	  JOIN customer_merchants_telegram cmt
+		ON cmt.telegram_user_id = tu.id
+	  JOIN customer_merchants cm
+		ON cm.customer_id = cmt.customer_id
+	   AND cm.merchant_id = cmt.merchant_id
+	  JOIN merchants m
+		ON m.id = cmt.merchant_id
+	  WHERE tu.telegram_id = $1
+	  ORDER BY cmt.joined_at DESC NULLS LAST, cm.created_at DESC
+	  LIMIT 1
+	  `,
+	  [telegram_id],
+	);
+
 
     if (baseRes.rowCount === 0) {
       return res.status(404).json({
@@ -367,24 +369,25 @@ router.get('/history', async (req, res) => {
   }
 
   try {
-    const baseRes = await pool.query(
-      `
-      SELECT
-        tu.id AS telegram_user_id,
-        cmt.customer_id,
-        cmt.merchant_id,
-        cm.id AS customer_merchant_id
-      FROM telegram_users tu
-      JOIN customer_merchants_telegram cmt
-        ON cmt.telegram_user_id = tu.id
-      JOIN customer_merchants cm
-        ON cm.customer_id = cmt.customer_id
-       AND cm.merchant_id = cmt.merchant_id
-      WHERE tu.telegram_id = $1
-      LIMIT 1
-      `,
-      [telegram_id],
-    );
+	const baseRes = await pool.query(
+	  `
+	  SELECT
+		tu.id AS telegram_user_id,
+		cmt.customer_id,
+		cmt.merchant_id,
+		cm.id AS customer_merchant_id
+	  FROM telegram_users tu
+	  JOIN customer_merchants_telegram cmt
+		ON cmt.telegram_user_id = tu.id
+	  JOIN customer_merchants cm
+		ON cm.customer_id = cmt.customer_id
+	   AND cm.merchant_id = cmt.merchant_id
+	  WHERE tu.telegram_id = $1
+	  ORDER BY cmt.joined_at DESC NULLS LAST, cm.created_at DESC
+	  LIMIT 1
+	  `,
+	  [telegram_id],
+	);
 
     if (baseRes.rowCount === 0) {
       return res.status(404).json({
