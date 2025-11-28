@@ -1,6 +1,7 @@
 (function () {
   const CONFIG = window.PROJECT_3128_CONFIG || {};
   const API_BASE = (CONFIG.apiBaseUrl || "").replace(/\/+$/, "");
+  const BOT_URL_BASE = (CONFIG.telegramBotUrl || "").replace(/\/+$/, "");
 
   const form = document.getElementById("merchantRegisterForm");
   const nameInput = document.getElementById("merchantName");
@@ -14,6 +15,11 @@
   const resKey = document.getElementById("resultApiKey");
   const resCreated = document.getElementById("resultCreatedAt");
   const resCurl = document.getElementById("resultCurlExample");
+
+  const qrSection = document.getElementById("qrSection");
+  const qrImg = document.getElementById("merchantQr");
+  const qrLink = document.getElementById("merchantQrLink");
+  const qrCaptionText = document.getElementById("qrCaptionText");
 
   function setStatus(msg, type) {
     if (!statusEl) return;
@@ -33,11 +39,50 @@
     }
   }
 
+  function buildBotDeepLink(merchant) {
+    if (!BOT_URL_BASE || !merchant || !merchant.code) {
+      return null;
+    }
+    // payload вида "mc_<код>", бот по нему понимает, к какому мерчанту привязывать клиента
+    const payload = "mc_" + String(merchant.code).toLowerCase();
+    const sep = BOT_URL_BASE.includes("?") ? "&" : "?";
+    return BOT_URL_BASE + sep + "start=" + encodeURIComponent(payload);
+  }
+
+  function fillQrBlock(merchant) {
+    if (!qrSection || !qrImg || !qrLink) return;
+
+    const deepLink = buildBotDeepLink(merchant);
+    if (!deepLink) {
+      qrSection.style.display = "none";
+      return;
+    }
+
+    qrLink.textContent = deepLink;
+    qrLink.href = deepLink;
+
+    if (qrCaptionText) {
+      const name = merchant.name || "вашего магазина";
+      qrCaptionText.textContent =
+        "Клиенты сканируют этот QR-код, переходят в Telegram-бот и " +
+        "регистрируются в программе лояльности «" + name + "». " +
+        "QR можно распечатать и повесить в зале, на кассе или у входа.";
+    }
+
+    // Используем Google Chart API для генерации QR (достаточно для демо)
+    const qrApiUrl =
+      "https://chart.googleapis.com/chart?cht=qr&chs=260x260&chl=" +
+      encodeURIComponent(deepLink);
+
+    qrImg.src = qrApiUrl;
+    qrSection.style.display = "grid";
+  }
+
   function fillResult(merchant) {
     if (!merchant || !card) return;
+
     resId.textContent = "ID: " + merchant.id;
     resCode.textContent = "Code: " + (merchant.code || "—");
-
     resKey.textContent = merchant.apiKey || "—";
     resCreated.textContent = formatDate(merchant.createdAt);
 
@@ -50,11 +95,21 @@
   -H "Content-Type: application/json" ^
   -H "X-API-Key: ${key}"`;
 
+    fillQrBlock(merchant);
+
     card.style.display = "block";
   }
 
   if (!API_BASE) {
     setStatus("API_BASE_URL не задан (config.js). Регистрация работать не будет.", "error");
+  } else {
+    if (!BOT_URL_BASE) {
+      // Не критично, просто предупреждаем, что QR не появится
+      setStatus(
+        "Внимание: telegramBotUrl не задан в config.js — QR для бота не будет сформирован.",
+        null
+      );
+    }
   }
 
   if (!form) return;

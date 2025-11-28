@@ -46,7 +46,7 @@
 
       .page {
         width: 100%;
-        max-width: 520px;
+        max-width: 620px;
       }
 
       .card {
@@ -231,7 +231,7 @@
 
       .result-card {
         margin-top: 14px;
-        padding: 10px 12px;
+        padding: 10px 12px 12px;
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.3);
         background: radial-gradient(circle at top left, var(--accent-soft), #020617);
@@ -288,6 +288,56 @@
         white-space: pre;
       }
 
+      .qr-section {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(148, 163, 184, 0.45);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px 14px;
+        align-items: center;
+      }
+
+      .qr-image-wrapper {
+        padding: 6px;
+        border-radius: 12px;
+        background: radial-gradient(circle at top, rgba(15, 23, 42, 0.98), #020617);
+        border: 1px solid rgba(148, 163, 184, 0.5);
+      }
+
+      .qr-image {
+        display: block;
+        width: 144px;
+        height: 144px;
+        background: #fff;
+        border-radius: 10px;
+      }
+
+      .qr-caption {
+        font-size: 11px;
+        color: var(--text-soft);
+      }
+
+      .qr-caption-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-main);
+        margin-bottom: 4px;
+      }
+
+      .qr-caption-text {
+        margin-bottom: 4px;
+      }
+
+      .qr-caption a {
+        color: rgba(129, 140, 248, 0.98);
+        text-decoration: none;
+      }
+
+      .qr-caption a:hover {
+        text-decoration: underline;
+      }
+
       .footer {
         margin-top: 10px;
         display: flex;
@@ -306,7 +356,7 @@
         text-decoration: underline;
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 720px) {
         .card {
           padding: 18px 16px 16px;
         }
@@ -320,6 +370,11 @@
           flex-direction: column;
           align-items: flex-start;
           gap: 4px;
+        }
+
+        .qr-section {
+          grid-template-columns: 1fr;
+          justify-items: flex-start;
         }
       }
     </style>
@@ -335,13 +390,14 @@
           <h1>Регистрация мерчанта</h1>
           <p class="subtitle">
             Одним запросом создаём нового мерчанта, генерируем код и API-ключ.
-            Эти данные можно сразу использовать в интеграции (POS / бот / портал).
+            Сразу же выдаём QR-код на бота, который можно распечатать и повесить
+            в магазине для регистрации клиентов в программе лояльности.
           </p>
 
           <div class="badge-row">
             <div class="badge">POST /api/v1/merchants/register</div>
             <div class="badge">REST JSON · без авторизации</div>
-            <div class="badge">API-key генерируется автоматически</div>
+            <div class="badge">API-key + QR для бота</div>
           </div>
 
           <form id="merchantRegisterForm" class="form">
@@ -350,7 +406,7 @@
               <input
                 id="merchantName"
                 type="text"
-                placeholder="Например, &laquo;Demo Shop&raquo;"
+                placeholder="Например, «Demo Shop»"
                 autocomplete="off"
                 required
               />
@@ -402,10 +458,33 @@
             </div>
 
             <div class="code-block" id="resultCurlExample"></div>
+
+            <div class="qr-section" id="qrSection" style="display: none;">
+              <div class="qr-image-wrapper">
+                <img
+                  id="merchantQr"
+                  class="qr-image"
+                  alt="QR-код для регистрации клиентов в боте"
+                />
+              </div>
+              <div class="qr-caption">
+                <div class="qr-caption-title">
+                  QR-код для регистрации клиентов
+                </div>
+                <div class="qr-caption-text" id="qrCaptionText">
+                  Клиенты сканируют этот QR-код, переходят в Telegram-бот и
+                  регистрируются в программе лояльности мерчанта.
+                </div>
+                <div class="qr-caption-text">
+                  Ссылка на бота:&nbsp;
+                  <a href="#" target="_blank" id="merchantQrLink">—</a>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="footer">
-            <div>1 шаг · merchant → API-key → затем портал / POS / бот.</div>
+            <div>1 шаг · merchant → API-key + QR → затем портал / POS / бот.</div>
             <div>
               <a href="/portal">Открыть портал</a>
               ·
@@ -416,7 +495,7 @@
       </div>
     </div>
 
-    <!-- Конфиг проекта (API_BASE_URL и т.п.) -->
+    <!-- Конфиг проекта (API_BASE_URL, telegramBotUrl и т.п.) -->
     <script src="/config.js"></script>
     <!-- Логика регистрации -->
     <script src="/register.js"></script>
